@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <AssemblyName>DesktopCalendar</AssemblyName>
+    <RootNamespace>DesktopCalendar.App</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\AppIcon.ico" />
+    <Resource Include="Assets\AppIcon.png" />
+    <ProjectReference Include="..\DesktopCalendar.Core\DesktopCalendar.Core.csproj" />
+    <ProjectReference Include="..\DesktopCalendar.Infrastructure\DesktopCalendar.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

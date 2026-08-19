@@ -1,0 +1,224 @@
+<Window x:Class="DesktopCalendar.App.EventEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:DesktopCalendar.App.Controls"
+        Title="일정 편집" Icon="Assets/AppIcon.ico" Width="610" Height="820" MinWidth="540" MinHeight="680"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource UiWindowBackgroundBrush}"
+        Foreground="{DynamicResource UiTextPrimaryBrush}" PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="16"/><Setter Property="Padding" Value="17"/><Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="{DynamicResource UiShadowColor}" BlurRadius="22" ShadowDepth="4" Opacity="0.20"/></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="LabelText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource UiTextSecondaryBrush}"/><Setter Property="FontWeight" Value="Medium"/><Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+        <Style x:Key="EditorTextBox" TargetType="TextBox" BasedOn="{StaticResource UiTextBoxBase}">
+            <Setter Property="Background" Value="{DynamicResource UiInputBackgroundBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource UiTextPrimaryBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Padding" Value="10,7"/>
+        </Style>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource UiComboBoxBase}">
+            <Setter Property="Background" Value="{DynamicResource UiInputBackgroundBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource UiComboBoxItemStyle}">
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceElevatedBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/><Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style TargetType="DatePicker" BasedOn="{StaticResource UiDatePickerBase}">
+            <Setter Property="Background" Value="{DynamicResource UiInputBackgroundBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/>
+        </Style>
+        <Style TargetType="DatePickerTextBox" BasedOn="{StaticResource UiDatePickerTextBoxStyle}"><Setter Property="Background" Value="{DynamicResource UiInputBackgroundBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/></Style>
+        <Style TargetType="CheckBox" BasedOn="{StaticResource UiCheckBoxBase}"><Setter Property="Foreground" Value="{DynamicResource UiTextSecondaryBrush}"/></Style>
+        <Style x:Key="FormatButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="MinWidth" Value="40"/><Setter Property="Height" Value="32"/><Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceElevatedBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="FormatToggle" TargetType="ToggleButton">
+            <Setter Property="MinWidth" Value="40"/><Setter Property="Height" Value="32"/><Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceElevatedBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="ToggleChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ToggleChrome" Property="Opacity" Value="0.82"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="ToggleChrome" Property="Background" Value="{DynamicResource UiAccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiOnAccentBrush}"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ToggleChrome" Property="Opacity" Value="0.42"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceElevatedBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Padding" Value="17,9"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="{DynamicResource UiAccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiOnAccentBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="22,9"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="{DynamicResource UiDangerSoftBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiDangerBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiDangerBrush}"/><Setter Property="Padding" Value="17,9"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="EmojiButton" TargetType="Button">
+            <Setter Property="Width" Value="44"/><Setter Property="Height" Value="42"/><Setter Property="Margin" Value="0,0,7,7"/>
+            <Setter Property="Padding" Value="0"/><Setter Property="Background" Value="{DynamicResource UiInputBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="EmojiChrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="11">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="EmojiChrome" Property="Background" Value="{DynamicResource UiAccentSoftBrush}"/>
+                                <Setter TargetName="EmojiChrome" Property="BorderBrush" Value="{DynamicResource UiAccentHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="EmojiChrome" Property="Opacity" Value="0.72"/></Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="EmojiChrome" Property="Background" Value="{DynamicResource UiAccentSoftBrush}"/>
+                                <Setter TargetName="EmojiChrome" Property="BorderBrush" Value="{DynamicResource UiAccentBrush}"/>
+                                <Setter TargetName="EmojiChrome" Property="BorderThickness" Value="2"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="EmojiClearButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource UiTextMutedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="11"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="{DynamicResource UiWindowBackgroundBrush}">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid Margin="26,22,26,16">
+            <StackPanel>
+                <TextBlock x:Name="EditorHeading" Text="일정 편집" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource UiTextPrimaryBrush}" />
+                <TextBlock Text="일정의 내용과 표현 방식을 한 곳에서 정리하세요." Foreground="{DynamicResource UiTextMutedBrush}" Margin="0,5,0,0" />
+            </StackPanel>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource UiAccentSoftBrush}" CornerRadius="11" Padding="11,6">
+                <TextBlock Text="CALENDAR" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource UiAccentBrush}"/>
+            </Border>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="26,0,13,0">
+            <StackPanel Margin="0,0,13,4">
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="제목" Style="{StaticResource LabelText}" />
+                        <TextBox x:Name="TitleBox" AutomationProperties.Name="일정 제목" Style="{StaticResource EditorTextBox}" FontSize="15" />
+                        <Border Background="{DynamicResource UiInputBackgroundBrush}" BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8" Margin="0,9,0,0">
+                            <DockPanel>
+                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                                    <ToggleButton x:Name="BoldToggle" Content="B" ToolTip="굵게 (Ctrl+B)" Click="FormatToggle_Click" FontWeight="Bold" Style="{StaticResource FormatToggle}" />
+                                    <ToggleButton x:Name="ItalicToggle" Content="I" ToolTip="기울임 (Ctrl+I)" Click="FormatToggle_Click" FontStyle="Italic" Style="{StaticResource FormatToggle}" />
+                                    <Button Content="A−" ToolTip="글자 작게 (Ctrl+Shift+&lt;)" Click="DecreaseFont_Click" Style="{StaticResource FormatButton}" />
+                                    <Button Content="A+" ToolTip="글자 크게 (Ctrl+Shift+&gt;)" Click="IncreaseFont_Click" Style="{StaticResource FormatButton}" />
+                                </StackPanel>
+                                <TextBlock x:Name="FontSizeText" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource UiTextMutedBrush}" />
+                            </DockPanel>
+                        </Border>
+                        <Border Height="1" Background="{DynamicResource UiBorderBrush}" Margin="0,17,0,15"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
+                            <Border Width="48" Height="48" CornerRadius="14" Background="{DynamicResource UiAccentSoftBrush}"
+                                    BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1" Margin="0,0,11,0">
+                                <TextBlock x:Name="SelectedEmojiText" Text="＋" FontFamily="Segoe UI Emoji" FontSize="24"
+                                           Foreground="{DynamicResource UiTextMutedBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="일정 이모지" Style="{StaticResource LabelText}" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="SelectedEmojiNameText" Text="선택 안 함" Foreground="{DynamicResource UiTextMutedBrush}" FontSize="12"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="카테고리" Style="{StaticResource LabelText}"/>
+                                <ComboBox x:Name="EmojiCategoryCombo" AutomationProperties.Name="이모지 카테고리"
+                                          SelectionChanged="EmojiCategory_Changed"/>
+                            </StackPanel>
+                        </Grid>
+                        <ScrollViewer MaxHeight="106" Margin="0,13,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="EmojiItemsControl">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Emoji}" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding AccessibleName}"
+                                                FontFamily="Segoe UI Emoji" FontSize="20" Click="Emoji_Click" Style="{StaticResource EmojiButton}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <Button Content="이모지 선택 해제" AutomationProperties.Name="일정 이모지 선택 해제"
+                                HorizontalAlignment="Left" Margin="0,4,0,0" Click="ClearEmoji_Click" Style="{StaticResource EmojiClearButton}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="장소" Style="{StaticResource LabelText}" />
+                        <TextBox x:Name="LocationBox" AutomationProperties.Name="장소" Style="{StaticResource EditorTextBox}" ToolTip="회의실, 주소 또는 온라인 링크" />
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="시작일" Style="{StaticResource LabelText}"/><DatePicker x:Name="StartDatePicker"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="종료일" Style="{StaticResource LabelText}"/><DatePicker x:Name="EndDatePicker"/></StackPanel>
+                        </Grid>
+                        <CheckBox x:Name="AllDayCheckBox" Content="종일 일정" Margin="0,14,0,0" Checked="AllDay_Changed" Unchecked="AllDay_Changed" />
+                        <Grid x:Name="TimePanel" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="시작 시간 (HH:mm)" Style="{StaticResource LabelText}"/><TextBox x:Name="StartTimeBox" Style="{StaticResource EditorTextBox}" /></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="종료 시간 (HH:mm)" Style="{StaticResource LabelText}"/><TextBox x:Name="EndTimeBox" Style="{StaticResource EditorTextBox}" /></StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="반복" Style="{StaticResource LabelText}" />
+                                <ComboBox x:Name="FrequencyCombo" SelectionChanged="Frequency_Changed">
+                                    <ComboBoxItem Tag="" Content="반복 없음"/><ComboBoxItem Tag="DAILY" Content="매일"/><ComboBoxItem Tag="WEEKLY" Content="매주"/><ComboBoxItem Tag="MONTHLY" Content="매월"/><ComboBoxItem Tag="YEARLY" Content="매년"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="반복 간격" Style="{StaticResource LabelText}"/><TextBox x:Name="IntervalBox" Text="1" Style="{StaticResource EditorTextBox}"/></StackPanel>
+                        </Grid>
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="반복 종료일 (선택)" Style="{StaticResource LabelText}"/><DatePicker x:Name="UntilDatePicker"/></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="일정 색상" Style="{StaticResource LabelText}"/><controls:PaletteColorPicker x:Name="EventColorPicker" AutomationProperties.Name="일정 색상" Alpha="255"/></StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel><TextBlock Text="메모" Style="{StaticResource LabelText}"/><TextBox x:Name="NotesBox" AutomationProperties.Name="메모" Height="130" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Style="{StaticResource EditorTextBox}"/></StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Background="{DynamicResource UiFooterBrush}" BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="0,1,0,0" Padding="26,15">
+            <Grid>
+                <TextBlock x:Name="ValidationText" Foreground="{DynamicResource UiDangerBrush}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="270" HorizontalAlignment="Left" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="DeleteButton" Content="삭제" Click="Delete_Click" Style="{StaticResource DangerButton}" Margin="0,0,8,0" />
+                    <Button Content="취소" Click="Cancel_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" />
+                    <Button Content="저장" Click="Save_Click" Style="{StaticResource PrimaryButton}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

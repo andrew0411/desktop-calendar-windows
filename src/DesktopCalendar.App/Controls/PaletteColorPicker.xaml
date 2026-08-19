@@ -1,0 +1,41 @@
+<UserControl x:Class="DesktopCalendar.App.Controls.PaletteColorPicker"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="145">
+    <Grid>
+        <Button x:Name="PickerButton" Click="PickerButton_Click" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand">
+            <Border CornerRadius="9" Background="{DynamicResource UiInputBackgroundBrush}" BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1" Padding="9,7">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/></Grid.ColumnDefinitions>
+                    <Border Background="{Binding SelectedColor, ElementName=Root}" Width="22" Height="22" CornerRadius="6" BorderBrush="{DynamicResource UiBorderStrongBrush}" BorderThickness="1" />
+                    <TextBlock Grid.Column="1" Text="{Binding SelectedName, ElementName=Root}" Foreground="{DynamicResource UiTextPrimaryBrush}" VerticalAlignment="Center" Margin="8,0" />
+                    <TextBlock Grid.Column="2" Text="⌄" Foreground="{DynamicResource UiTextMutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Button>
+        <Popup x:Name="PalettePopup" PlacementTarget="{Binding ElementName=PickerButton}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+            <Border Background="{DynamicResource UiSurfaceElevatedBrush}" BorderBrush="{DynamicResource UiBorderStrongBrush}" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,4,0,0">
+                <StackPanel>
+                    <TextBlock Text="색상 선택" Foreground="{DynamicResource UiTextPrimaryBrush}" FontWeight="SemiBold" Margin="2,0,0,10" />
+                    <ItemsControl ItemsSource="{Binding Palette, ElementName=Root}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Columns="6" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Tag="{Binding}" Click="PaletteItem_Click" ToolTip="{Binding Name}"
+                                        AutomationProperties.Name="{Binding Name}" Width="38" Height="38" Margin="3"
+                                        Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                                    <Border Background="{Binding Hex}" Width="30" Height="30" CornerRadius="8"
+                                            BorderBrush="{DynamicResource UiBorderStrongBrush}" BorderThickness="1" />
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

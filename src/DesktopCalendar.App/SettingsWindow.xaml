@@ -1,0 +1,247 @@
+<Window x:Class="DesktopCalendar.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:DesktopCalendar.App.Controls"
+        Title="캘린더 설정" Icon="Assets/AppIcon.ico" Width="680" Height="800" MinWidth="620" MinHeight="650"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource UiWindowBackgroundBrush}" Foreground="{DynamicResource UiTextPrimaryBrush}">
+    <Window.Resources>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="17"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+        </Style>
+        <Style x:Key="SectionCaption" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="{DynamicResource UiTextMutedBrush}"/><Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Foreground" Value="{DynamicResource UiTextSecondaryBrush}"/><Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        <Style x:Key="InputBox" TargetType="TextBox" BasedOn="{StaticResource UiTextBoxBase}">
+            <Setter Property="Background" Value="{DynamicResource UiInputBackgroundBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/><Setter Property="CaretBrush" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Padding" Value="8,6"/><Setter Property="Margin" Value="4,3"/>
+        </Style>
+        <Style x:Key="ComboInput" TargetType="ComboBox" BasedOn="{StaticResource UiComboBoxBase}">
+            <Setter Property="Background" Value="{DynamicResource UiInputBackgroundBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource UiBorderStrongBrush}"/>
+            <Setter Property="Padding" Value="7,5"/><Setter Property="Margin" Value="4,3"/>
+        </Style>
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="{DynamicResource UiAccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiOnAccentBrush}"/><Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,9"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceElevatedBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/>
+            <Setter Property="Padding" Value="15,8"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="16"/><Setter Property="Padding" Value="19"/><Setter Property="Margin" Value="0,0,0,14"/>
+            <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="{DynamicResource UiShadowColor}" BlurRadius="22" ShadowDepth="4" Opacity="0.22"/></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ModeToggle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource UiTextSecondaryBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="ModeBorder" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ModeBorder" Property="Background" Value="{DynamicResource UiSurfaceHoverBrush}"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="ModeBorder" Property="Background" Value="{DynamicResource UiAccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiOnAccentBrush}"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="CheckBox" BasedOn="{StaticResource UiCheckBoxBase}" />
+    </Window.Resources>
+
+    <Grid Background="{DynamicResource UiWindowBackgroundBrush}">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid Margin="24,20,24,14">
+            <StackPanel>
+                <TextBlock Text="캘린더 꾸미기" FontSize="25" FontWeight="SemiBold" Foreground="{DynamicResource UiTextPrimaryBrush}" />
+                <TextBlock Text="변경 내용은 뒤에 열린 캘린더에 바로 반영됩니다." Foreground="{DynamicResource UiTextMutedBrush}" Margin="0,5,0,0" />
+            </StackPanel>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource UiAccentSoftBrush}" CornerRadius="12" Padding="12,7">
+                <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{DynamicResource UiSuccessBrush}" Margin="0,0,7,0"/><TextBlock Text="실시간 미리보기" Foreground="{DynamicResource UiTextSecondaryBrush}"/></StackPanel>
+            </Border>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,0,12,0">
+            <StackPanel Margin="0,0,12,0">
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="화면 모드" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="설정과 일정 편집 창에 적용할 화면 모드를 선택하세요." Style="{StaticResource SectionCaption}" Margin="0,4,0,10" />
+                        <Border Background="{DynamicResource UiInputBackgroundBrush}" BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1" CornerRadius="11" Padding="3">
+                            <UniformGrid Columns="2">
+                                <RadioButton x:Name="DarkModeRadio" GroupName="AppearanceMode" Content="☾  다크 모드" Style="{StaticResource ModeToggle}" Checked="AnyChanged" />
+                                <RadioButton x:Name="LightModeRadio" GroupName="AppearanceMode" Content="☀  라이트 모드" Style="{StaticResource ModeToggle}" Checked="AnyChanged" />
+                            </UniformGrid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="표시 화면" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="캘린더를 표시할 모니터를 선택하세요." Style="{StaticResource SectionCaption}" Margin="0,4,0,10" />
+                        <ComboBox x:Name="MonitorCombo" Style="{StaticResource ComboInput}" DisplayMemberPath="Label" SelectedValuePath="DeviceName" SelectionChanged="AnyChanged" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="날씨" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="날짜 옆에 날씨와 최고·최저 기온을 표시합니다." Style="{StaticResource SectionCaption}" Margin="0,4,0,0" />
+                            </StackPanel>
+                            <CheckBox x:Name="WeatherEnabledCheck" Content="날씨 표시" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                      Checked="WeatherControlChanged" Unchecked="WeatherControlChanged" />
+                        </Grid>
+
+                        <StackPanel x:Name="WeatherOptionsPanel" Margin="0,14,0,0">
+                            <Border Background="{DynamicResource UiInputBackgroundBrush}" BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1" CornerRadius="11" Padding="3">
+                                <UniformGrid Columns="2">
+                                    <RadioButton x:Name="ManualWeatherRadio" GroupName="WeatherLocationMode" Content="⌖  직접 입력" Style="{StaticResource ModeToggle}" Checked="WeatherModeChanged" />
+                                    <RadioButton x:Name="AutomaticWeatherRadio" GroupName="WeatherLocationMode" Content="◎  현재 위치" Style="{StaticResource ModeToggle}" Checked="WeatherModeChanged" />
+                                </UniformGrid>
+                            </Border>
+
+                            <StackPanel x:Name="ManualWeatherPanel" Margin="0,12,0,0">
+                                <TextBlock Text="도시명 또는 우편번호" Style="{StaticResource FieldLabel}" Margin="1,0,0,5" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox x:Name="WeatherLocationBox" Style="{StaticResource InputBox}" Margin="0,0,8,0"
+                                             AutomationProperties.Name="날씨 위치" TextChanged="WeatherLocation_TextChanged" />
+                                    <Button Grid.Column="1" x:Name="SearchWeatherButton" Content="위치 찾기" Click="SearchWeather_Click" Style="{StaticResource SecondaryButton}" />
+                                </Grid>
+                                <ComboBox x:Name="WeatherLocationResults" Style="{StaticResource ComboInput}" Margin="0,8,0,0"
+                                          DisplayMemberPath="DisplayName" SelectionChanged="WeatherLocationResult_Changed" Visibility="Collapsed" />
+                            </StackPanel>
+
+                            <Border x:Name="AutomaticWeatherPanel" Background="{DynamicResource UiAccentFaintBrush}" CornerRadius="10" Padding="12" Margin="0,12,0,0" Visibility="Collapsed">
+                                <Grid>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Windows 위치 서비스 사용" Foreground="{DynamicResource UiTextPrimaryBrush}" FontWeight="SemiBold" />
+                                        <TextBlock Text="처음 사용할 때 Windows가 위치 권한을 요청합니다." Style="{StaticResource SectionCaption}" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                    <Button x:Name="DetectWeatherLocationButton" Content="현재 위치 확인" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Click="DetectWeatherLocation_Click" Style="{StaticResource SecondaryButton}" />
+                                </Grid>
+                            </Border>
+
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="180"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="온도 단위" Style="{StaticResource FieldLabel}" Margin="1,0,12,0" />
+                                <Border Grid.Column="1" Background="{DynamicResource UiInputBackgroundBrush}" BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="3">
+                                    <UniformGrid Columns="2">
+                                        <RadioButton x:Name="CelsiusRadio" GroupName="WeatherTemperature" Content="℃" Style="{StaticResource ModeToggle}" Padding="12,7" Checked="WeatherControlChanged" />
+                                        <RadioButton x:Name="FahrenheitRadio" GroupName="WeatherTemperature" Content="℉" Style="{StaticResource ModeToggle}" Padding="12,7" Checked="WeatherControlChanged" />
+                                    </UniformGrid>
+                                </Border>
+                                <Button Grid.Column="2" x:Name="RefreshWeatherButton" Content="지금 업데이트" HorizontalAlignment="Right"
+                                        Click="RefreshWeather_Click" Style="{StaticResource PrimaryButton}" Padding="15,8" />
+                            </Grid>
+
+                            <Border Background="{DynamicResource UiSurfaceSubtleBrush}" CornerRadius="9" Padding="11,8" Margin="0,10,0,0">
+                                <Grid>
+                                    <TextBlock x:Name="WeatherStatusText" Foreground="{DynamicResource UiTextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,0,105,0" />
+                                    <TextBlock Text="Open-Meteo" HorizontalAlignment="Right" Foreground="{DynamicResource UiTextMutedBrush}" FontSize="10" />
+                                </Grid>
+                            </Border>
+                            <TextBlock Text="예보는 12시간마다 자동 갱신되며 인터넷 연결이 없으면 마지막 데이터를 표시합니다. 최대 16일 예보가 표시됩니다."
+                                       Style="{StaticResource SectionCaption}" Margin="1,8,1,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="글꼴과 글자" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="기본 글꼴은 ‘맑은 고딕’입니다. 한글과 영문에서 많이 사용하는 대표 글꼴만 표시합니다." Style="{StaticResource SectionCaption}" Margin="0,4,0,12" />
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="92"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                            <TextBlock Text="월 제목" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="MonthFont" Grid.Column="1" Style="{StaticResource ComboInput}" DisplayMemberPath="Label" SelectedValuePath="Family" SelectionChanged="AnyChanged"/><TextBox x:Name="MonthSize" Grid.Column="2" TextChanged="AnyChanged" Style="{StaticResource InputBox}"/><TextBlock Grid.Column="3" Text="pt" Foreground="{DynamicResource UiTextMutedBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="1" Text="요일" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="WeekdayFont" Grid.Row="1" Grid.Column="1" Style="{StaticResource ComboInput}" DisplayMemberPath="Label" SelectedValuePath="Family" SelectionChanged="AnyChanged"/><TextBox x:Name="WeekdaySize" Grid.Row="1" Grid.Column="2" TextChanged="AnyChanged" Style="{StaticResource InputBox}"/><TextBlock Grid.Row="1" Grid.Column="3" Text="pt" Foreground="{DynamicResource UiTextMutedBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="2" Text="날짜" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="DateFont" Grid.Row="2" Grid.Column="1" Style="{StaticResource ComboInput}" DisplayMemberPath="Label" SelectedValuePath="Family" SelectionChanged="AnyChanged"/><TextBox x:Name="DateSize" Grid.Column="2" Grid.Row="2" TextChanged="AnyChanged" Style="{StaticResource InputBox}"/><TextBlock Grid.Row="2" Grid.Column="3" Text="pt" Foreground="{DynamicResource UiTextMutedBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Row="3" Text="일정" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="EventFont" Grid.Row="3" Grid.Column="1" Style="{StaticResource ComboInput}" DisplayMemberPath="Label" SelectedValuePath="Family" SelectionChanged="AnyChanged"/><TextBox x:Name="EventSize" Grid.Row="3" Grid.Column="2" TextChanged="AnyChanged" Style="{StaticResource InputBox}"/><TextBlock Grid.Row="3" Grid.Column="3" Text="pt" Foreground="{DynamicResource UiTextMutedBrush}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="색상과 배경" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="색상 칸을 누른 뒤 팔레트에서 원하는 색상을 고르세요." Style="{StaticResource SectionCaption}" Margin="0,4,0,12" />
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="0,0,8,11"><TextBlock Text="월 제목" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="MonthColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="8,0,0,11"><TextBlock Text="요일" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="WeekdayColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="0,0,8,11"><TextBlock Text="날짜" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="DateColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="8,0,0,11"><TextBlock Text="일정 글자" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="EventColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="0,0,8,11"><TextBlock Text="일요일" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="SundayColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="8,0,0,11"><TextBlock Text="토요일" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="SaturdayColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="0,0,8,11"><TextBlock Text="오늘 강조" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="TodayColor" Alpha="102" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="8,0,0,11"><TextBlock Text="기본 일정" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="DefaultEventColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="0,0,8,11"><TextBlock Text="캘린더 배경" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="BackgroundColor" SelectedColorChanged="ColorChanged"/></StackPanel>
+                            <StackPanel Margin="8,0,0,11"><TextBlock Text="구분선" Style="{StaticResource FieldLabel}" Margin="0,0,0,5"/><controls:PaletteColorPicker x:Name="GridColor" Alpha="56" SelectedColorChanged="ColorChanged"/></StackPanel>
+                        </UniformGrid>
+
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="62"/></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="40"/></Grid.RowDefinitions>
+                            <TextBlock Text="배경 투명도" Style="{StaticResource FieldLabel}"/>
+                            <Slider x:Name="BackgroundOpacity" Grid.Column="1" Minimum="0.15" Maximum="1"
+                                    SmallChange="0.01" LargeChange="0.05" TickFrequency="0.05"
+                                    IsMoveToPointEnabled="True" ValueChanged="AnyChanged" Margin="4,0"/>
+                            <TextBlock x:Name="OpacityValueText" Grid.Column="2" Foreground="{DynamicResource UiTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                            <TextBlock Grid.Row="1" Text="구분선 두께" Style="{StaticResource FieldLabel}"/>
+                            <Slider x:Name="GridThickness" Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="3"
+                                    SmallChange="0.05" LargeChange="0.25" TickFrequency="0.25"
+                                    IsMoveToPointEnabled="True" ValueChanged="AnyChanged" Margin="4,0"/>
+                            <TextBlock x:Name="ThicknessValueText" Grid.Row="1" Grid.Column="2" Foreground="{DynamicResource UiTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="실행" Style="{StaticResource SectionTitle}" />
+                        <CheckBox x:Name="AutoStartCheck" Content="Windows 로그인 시 자동 실행" Checked="AnyChanged" Unchecked="AnyChanged" Margin="0,11,0,0" Foreground="{DynamicResource UiTextSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="백업과 복원" Style="{StaticResource SectionTitle}" />
+                        <Border Background="{DynamicResource UiAccentSoftBrush}" CornerRadius="9" Padding="12" Margin="0,8,0,12">
+                            <TextBlock Foreground="{DynamicResource UiTextSecondaryBrush}" TextWrapping="Wrap" LineHeight="20">
+                                매일 처음 실행할 때 자동 백업을 만들고 최근 7개를 보관합니다. 내보내기는 일정과 설정을 하나의 JSON 파일로 저장합니다. 복원하기 전에는 현재 데이터를 별도 안전 백업으로 먼저 보존합니다.
+                            </TextBlock>
+                        </Border>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="백업 내보내기" Click="Export_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" />
+                            <Button Content="백업 복원" Click="Import_Click" Style="{StaticResource SecondaryButton}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <TextBlock x:Name="ValidationText" Foreground="{DynamicResource UiDangerBrush}" Margin="4,0,4,10" TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Background="{DynamicResource UiFooterBrush}" BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="0,1,0,0" Padding="24,15">
+            <Grid>
+                <Button Content="기본값 복원" HorizontalAlignment="Left" Click="Reset_Click" Style="{StaticResource SecondaryButton}" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="취소" Click="Cancel_Click" Style="{StaticResource SecondaryButton}" Margin="0,0,9,0" />
+                    <Button Content="적용" Click="Apply_Click" Style="{StaticResource PrimaryButton}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

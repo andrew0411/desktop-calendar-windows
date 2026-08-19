@@ -1,0 +1,344 @@
+<Window x:Class="DesktopCalendar.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DesktopCalendar.App.ViewModels"
+        xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
+        Title="바탕화면 캘린더" Icon="Assets/AppIcon.ico"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ResizeMode="NoResize" MinWidth="560" MinHeight="480"
+        Loaded="Window_Loaded" SourceInitialized="Window_SourceInitialized"
+        Deactivated="Window_Deactivated"
+        MouseEnter="Window_MouseEnter" MouseLeave="Window_MouseLeave"
+        LocationChanged="Window_PlacementChanged" SizeChanged="Window_PlacementChanged">
+    <Grid>
+        <Border CornerRadius="18" Background="{Binding Theme.BackgroundColorHex}" Opacity="{Binding Theme.BackgroundOpacity}">
+            <Border.Effect>
+                <DropShadowEffect Color="#A6000000" BlurRadius="30" ShadowDepth="8" Opacity="0.58" />
+            </Border.Effect>
+        </Border>
+        <Border CornerRadius="18" BorderBrush="#28FFFFFF" BorderThickness="1" IsHitTestVisible="False" Margin="0.5" />
+        <Border x:Name="EditBorder" CornerRadius="18" BorderBrush="{DynamicResource UiAccentHoverBrush}" BorderThickness="0">
+            <Grid Margin="16,14,16,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="64" />
+                    <RowDefinition Height="38" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding MonthTitle}" HorizontalAlignment="Center"
+                                   FontFamily="{Binding Theme.MonthTitle.Family}" FontSize="{Binding Theme.MonthTitle.Size}"
+                                   Foreground="{Binding Theme.MonthTitle.ColorHex}" FontWeight="SemiBold" />
+                        <Border Width="24" Height="3" Margin="0,6,0,0" CornerRadius="2" Background="{DynamicResource UiAccentBrush}" Opacity="0.9" />
+                    </StackPanel>
+                    <primitives:Thumb x:Name="MoveThumb" Width="112" Height="30" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                      Visibility="Collapsed" Cursor="SizeAll" Tag="Move" AutomationProperties.Name="캘린더 위치 이동"
+                                      PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown">
+                        <primitives:Thumb.Template>
+                            <ControlTemplate TargetType="primitives:Thumb">
+                                <Border Background="#E61C2639" BorderBrush="{DynamicResource UiAccentHoverBrush}" BorderThickness="1" CornerRadius="10" Padding="9,6">
+                                    <TextBlock Text="⠿  위치 이동" Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                </Border>
+                            </ControlTemplate>
+                        </primitives:Thumb.Template>
+                    </primitives:Thumb>
+                    <StackPanel x:Name="Toolbar" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Visibility="{Binding ToolbarVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Content="‹" Click="PreviousMonth_Click" Style="{DynamicResource ToolbarButton}" />
+                        <Button Content="오늘" Click="Today_Click" Style="{DynamicResource ToolbarButton}" />
+                        <Button Content="›" Click="NextMonth_Click" Style="{DynamicResource ToolbarButton}" />
+                        <Button x:Name="LayoutButton" Content="↔ 위치·크기" Click="LayoutEdit_Click" ToolTip="캘린더 이동 및 크기 조정" Style="{DynamicResource ToolbarButton}" />
+                        <Button Content="⚙" Click="Settings_Click" Style="{DynamicResource ToolbarButton}" />
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Row="1" Background="#0CFFFFFF" CornerRadius="10" Margin="1,0,1,4">
+                    <UniformGrid Columns="7">
+                        <TextBlock Text="일" Style="{DynamicResource WeekdayText}" Foreground="{Binding Theme.SundayColorHex}" />
+                        <TextBlock Text="월" Style="{DynamicResource WeekdayText}" />
+                        <TextBlock Text="화" Style="{DynamicResource WeekdayText}" />
+                        <TextBlock Text="수" Style="{DynamicResource WeekdayText}" />
+                        <TextBlock Text="목" Style="{DynamicResource WeekdayText}" />
+                        <TextBlock Text="금" Style="{DynamicResource WeekdayText}" />
+                        <TextBlock Text="토" Style="{DynamicResource WeekdayText}" Foreground="{Binding Theme.SaturdayColorHex}" />
+                    </UniformGrid>
+                </Border>
+
+                <ItemsControl Grid.Row="2" ItemsSource="{Binding Days}" Margin="0,2,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="7" Rows="6" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
+                            <Border BorderBrush="{Binding DataContext.Theme.GridColorHex, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    BorderThickness="{Binding DataContext.Theme.GridThickness, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CornerRadius="9" Margin="1.5" Padding="6">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="Opacity" Value="1" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding BelongsToMonth}" Value="False"><Setter Property="Opacity" Value="0.34" /></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Button Grid.RowSpan="3" Tag="CellInputSurface" AutomationProperties.Name="일정 추가"
+                                            Background="Transparent" BorderThickness="0" Focusable="False" Cursor="Hand"
+                                            Click="DayCellInput_Click">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="CellHover" Background="{TemplateBinding Background}" CornerRadius="7" />
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="CellHover" Property="Background" Value="#13FFFFFF" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter TargetName="CellHover" Property="Background" Value="#20FFFFFF" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                    <StackPanel IsHitTestVisible="False">
+                                        <Border Width="28" Height="28" CornerRadius="14" HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                            <Setter Property="Background" Value="{Binding DataContext.Theme.TodayColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding DayText}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                       FontFamily="{Binding DataContext.Theme.Date.Family, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                       FontSize="{Binding DataContext.Theme.Date.Size, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{Binding DataContext.Theme.Date.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                        <Setter Property="FontWeight" Value="Medium" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsToday}" Value="True"><Setter Property="FontWeight" Value="SemiBold" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsSaturday}" Value="True"><Setter Property="Foreground" Value="{Binding DataContext.Theme.SaturdayColorHex, RelativeSource={RelativeSource AncestorType=Window}}" /></DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsSunday}" Value="True"><Setter Property="Foreground" Value="{Binding DataContext.Theme.SundayColorHex, RelativeSource={RelativeSource AncestorType=Window}}" /></DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                        <ItemsControl ItemsSource="{Binding Holidays}" Margin="0,2,0,3">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:HolidayViewModel}">
+                                                    <Border Background="{Binding BackgroundHex}" CornerRadius="5" Margin="0,1,0,0" Padding="5,2"
+                                                            ToolTip="{Binding DisplayText}">
+                                                        <TextBlock Text="{Binding DisplayText}" Foreground="White" FontSize="10"
+                                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="34,1,1,0" Padding="5,2"
+                                            Background="#18000000" CornerRadius="7" Panel.ZIndex="15"
+                                            Visibility="{Binding HasWeather, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                            ToolTip="{Binding Weather.ToolTipText}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Weather.Icon}" FontFamily="Segoe UI Emoji" FontSize="11"
+                                                       Foreground="{Binding Weather.IconColorHex}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Weather.MaximumText}" Margin="3,0,0,0" FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="#FFFFA06B" VerticalAlignment="Center" />
+                                            <TextBlock Text="/" Margin="1,0" FontSize="9" Foreground="{Binding DataContext.Theme.Date.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" Opacity="0.62" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Weather.MinimumText}" FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="#FF78B7FF" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Border>
+                                    <ItemsControl Grid.Row="1" ItemsSource="{Binding VisibleEvents}" PreviewMouseMove="Events_PreviewMouseMove">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:EventOccurrenceViewModel}">
+                                                <Border Margin="0,1.5" Padding="6,3" ToolTip="{Binding ToolTipText}" Cursor="Hand"
+                                                        Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        PreviewMouseLeftButtonDown="Event_MouseLeftButtonDown" MouseEnter="Event_MouseEnter">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="{Binding BackgroundHex}" />
+                                                            <Setter Property="BorderBrush" Value="{Binding ColorHex}" />
+                                                            <Setter Property="BorderThickness" Value="3,0,0,0" />
+                                                            <Setter Property="CornerRadius" Value="5" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter Property="BorderBrush" Value="{DynamicResource UiAccentHoverBrush}" />
+                                                                    <Setter Property="BorderThickness" Value="2" />
+                                                                    <Setter Property="Background" Value="{DynamicResource UiAccentSoftBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Width="17" Height="17" CornerRadius="9" Margin="0,0,5,0"
+                                                                Background="{DynamicResource UiSuccessBrush}"
+                                                                Visibility="{Binding IsCompleted, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Path Data="M 3 8 L 7 12 L 14 4" Stroke="White" StrokeThickness="2"
+                                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Emoji}" FontFamily="Segoe UI Emoji" FontSize="{Binding FontSize}"
+                                                                   Margin="0,0,5,0" VerticalAlignment="Center"
+                                                                   Visibility="{Binding HasEmoji, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding DisplayText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                                   FontFamily="{Binding DataContext.Theme.Event.Family, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                   FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}" FontStyle="{Binding FontStyle}"
+                                                                   TextDecorations="{Binding TextDecorations}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{Binding DataContext.Theme.Event.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource UiSuccessBrush}" />
+                                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Grid Grid.Row="2" Panel.ZIndex="20">
+                                        <Button Content="{Binding HiddenText}" Visibility="{Binding HasHiddenEvents, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                HorizontalAlignment="Left" Click="MoreEvents_Click" Style="{DynamicResource MoreButton}" />
+                                        <Button x:Name="EventActionsButton" Content="{Binding ActionMenuGlyph}" ToolTip="일정 추가 또는 일정 상태 변경"
+                                                AutomationProperties.Name="일정 추가 및 작업 메뉴" HorizontalAlignment="Right"
+                                                Click="EventActionsToggle_Click" Style="{DynamicResource EventMenuPlusButton}" />
+                                        <Popup x:Name="EventActionsPopup" IsOpen="{Binding IsActionMenuOpen, Mode=TwoWay}"
+                                               PlacementTarget="{Binding ElementName=EventActionsButton}" Placement="Top"
+                                               StaysOpen="False" AllowsTransparency="True">
+                                            <Border DataContext="{Binding PlacementTarget.DataContext, ElementName=EventActionsPopup}"
+                                                    Background="{DynamicResource UiSurfaceElevatedBrush}" BorderBrush="{DynamicResource UiBorderStrongBrush}"
+                                                    BorderThickness="1" CornerRadius="11" Padding="10" Margin="0,0,0,5">
+                                                <Border.Effect><DropShadowEffect Color="#70000000" BlurRadius="18" ShadowDepth="4" Opacity="0.45" /></Border.Effect>
+                                                <StackPanel>
+                                                    <Button Content="＋  새 일정 추가" AutomationProperties.Name="선택 날짜에 새 일정 추가"
+                                                            Click="NewEventFromMenu_Click" Style="{DynamicResource NewEventActionButton}" />
+                                                    <Border Height="1" Background="{DynamicResource UiBorderBrush}" Margin="1,9,1,8" />
+                                                    <TextBlock Text="{Binding SelectedActionLabel}" Foreground="{DynamicResource UiTextSecondaryBrush}"
+                                                               FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="190" Margin="3,0,3,7" />
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button Content="{Binding HighlightActionLabel}" IsEnabled="{Binding HasSelectedEvent}"
+                                                                AutomationProperties.Name="선택 일정 하이라이트" Click="SelectedHighlight_Click" Style="{DynamicResource CellActionButton}" Margin="0,0,6,0" />
+                                                        <Button Content="{Binding CompleteActionLabel}" IsEnabled="{Binding HasSelectedEvent}"
+                                                                AutomationProperties.Name="선택 일정 완료 상태" Click="SelectedComplete_Click" Style="{DynamicResource CellActionButton}" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
+        <Grid x:Name="LayoutChrome" Visibility="Collapsed" Panel.ZIndex="100">
+            <Border BorderBrush="{DynamicResource UiAccentHoverBrush}" BorderThickness="2" CornerRadius="18" IsHitTestVisible="False" />
+            <primitives:Thumb Tag="Top" Height="12" VerticalAlignment="Top" Cursor="SizeNS" Background="Transparent" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+            <primitives:Thumb Tag="Bottom" Height="12" VerticalAlignment="Bottom" Cursor="SizeNS" Background="Transparent" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+            <primitives:Thumb Tag="Left" Width="12" HorizontalAlignment="Left" Cursor="SizeWE" Background="Transparent" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+            <primitives:Thumb Tag="Right" Width="12" HorizontalAlignment="Right" Cursor="SizeWE" Background="Transparent" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+            <primitives:Thumb Tag="TopLeft" Width="24" Height="24" HorizontalAlignment="Left" VerticalAlignment="Top" Cursor="SizeNWSE" Background="{DynamicResource UiAccentHoverBrush}" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+            <primitives:Thumb Tag="TopRight" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Top" Cursor="SizeNESW" Background="{DynamicResource UiAccentHoverBrush}" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+            <primitives:Thumb Tag="BottomLeft" Width="24" Height="24" HorizontalAlignment="Left" VerticalAlignment="Bottom" Cursor="SizeNESW" Background="{DynamicResource UiAccentHoverBrush}" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+            <primitives:Thumb Tag="BottomRight" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="SizeNWSE" Background="{DynamicResource UiAccentHoverBrush}" AutomationProperties.Name="캘린더 크기 조정" PreviewMouseLeftButtonDown="LayoutThumb_MouseLeftButtonDown" />
+        </Grid>
+    </Grid>
+    <Window.Resources>
+        <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="#78141B2A" />
+            <Setter Property="Foreground" Value="#FFF7F8FC" />
+            <Setter Property="BorderBrush" Value="#35FFFFFF" />
+            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="MoreButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#FFD5DAE4" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="EventMenuPlusButton" TargetType="Button">
+            <Setter Property="Width" Value="26" /><Setter Property="Height" Value="26" /><Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" /><Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonChrome" Background="Transparent" BorderBrush="#30FFFFFF" BorderThickness="1" CornerRadius="8">
+                            <Grid>
+                                <Border x:Name="HoverTint" CornerRadius="7"
+                                        Background="{Binding DataContext.Theme.BackgroundColorHex, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Opacity="0" />
+                                <Grid x:Name="PlusGlyph" Width="11" Height="11" RenderTransformOrigin="0.5,0.5" Opacity="0.78">
+                                    <Grid.RenderTransform><RotateTransform Angle="0" /></Grid.RenderTransform>
+                                    <Border Width="11" Height="1.7" CornerRadius="1" Background="{Binding DataContext.Theme.Date.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <Border Width="1.7" Height="11" CornerRadius="1" Background="{Binding DataContext.Theme.Date.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HoverTint" Property="Opacity" Value="0.34" />
+                                <Setter TargetName="PlusGlyph" Property="Opacity" Value="1" />
+                                <Setter TargetName="ButtonChrome" Property="BorderBrush" Value="#58FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="HoverTint" Property="Opacity" Value="0.56" /></Trigger>
+                            <DataTrigger Binding="{Binding IsActionMenuOpen}" Value="True">
+                                <Setter TargetName="HoverTint" Property="Opacity" Value="0.42" />
+                                <Setter TargetName="PlusGlyph" Property="Opacity" Value="1" />
+                                <Setter TargetName="PlusGlyph" Property="RenderTransform"><Setter.Value><RotateTransform Angle="45" /></Setter.Value></Setter>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="NewEventActionButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="{DynamicResource UiAccentBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource UiOnAccentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="CellActionButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="{DynamicResource UiAccentSoftBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Padding" Value="10,6"/><Setter Property="FontSize" Value="11"/>
+        </Style>
+        <Style x:Key="WeekdayText" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontFamily" Value="{Binding Theme.Weekday.Family}" />
+            <Setter Property="FontSize" Value="{Binding Theme.Weekday.Size}" />
+            <Setter Property="Foreground" Value="{Binding Theme.Weekday.ColorHex}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Resources>
+</Window>
