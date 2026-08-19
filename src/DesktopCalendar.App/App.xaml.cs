@@ -55,6 +55,7 @@ public partial class App : System.Windows.Application
             _mainWindow = new MainWindow(_viewModel, _desktopHost);
             MainWindow = _mainWindow;
             _mainWindow.SettingsRequested += (_, _) => OpenSettings();
+            _mainWindow.ExitRequested += (_, _) => ExitApplication();
             _mainWindow.LayoutEditingChanged += (_, _) => UpdateTray();
             _mainWindow.Show();
             _weatherTimer = new DispatcherTimer(TimeSpan.FromMinutes(30), DispatcherPriority.Background, WeatherTimer_Tick, Dispatcher);
@@ -134,7 +135,10 @@ public partial class App : System.Windows.Application
             if (_settingsWindow.AppliedSettings is { } applied)
             {
                 _startup.SetEnabled(applied.StartWithWindows);
-                await _viewModel.ApplySettingsAsync(applied);
+                var eventFontSizeChanged = Math.Abs(original.Theme.Event.Size - applied.Theme.Event.Size) > 0.001;
+                if (!eventFontSizeChanged)
+                    _viewModel.RestoreSettingsPreview(applied);
+                await _viewModel.ApplySettingsAsync(applied, eventFontSizeChanged);
                 await _viewModel.RefreshWeatherIfNeededAsync();
             }
             else if (_settingsWindow.Imported)
@@ -144,7 +148,7 @@ public partial class App : System.Windows.Application
             }
             else if (!_settingsWindow.Imported)
             {
-                _viewModel.PreviewSettings(original);
+                _viewModel.RestoreSettingsPreview(original);
                 await _viewModel.RefreshWeatherIfNeededAsync();
             }
             UiThemeService.Apply(_viewModel.Settings.AppearanceMode);

@@ -6,6 +6,7 @@ using DesktopCalendar.Core.Models;
 using DesktopCalendar.Core.Services;
 using DesktopCalendar.App.Services;
 using DesktopCalendar.App.ViewModels;
+using WpfTextBox = System.Windows.Controls.TextBox;
 
 namespace DesktopCalendar.App;
 
@@ -72,10 +73,18 @@ public partial class EventEditorWindow : Window
         }
 
         var allDay = AllDayCheckBox.IsChecked == true;
+        var startTimeIsValid = allDay || TryNormalizeTimeBox(StartTimeBox);
+        var endTimeIsValid = allDay || TryNormalizeTimeBox(EndTimeBox);
+        if (!startTimeIsValid || !endTimeIsValid)
+        {
+            ValidationText.Text = "시간을 HH:mm 또는 HHmm 형식으로 입력하세요.";
+            (startTimeIsValid ? EndTimeBox : StartTimeBox).Focus();
+            return;
+        }
         if (!TryCreateDateTime(StartDatePicker.SelectedDate.Value, StartTimeBox.Text, allDay, isEnd: false, out var start) ||
             !TryCreateDateTime(EndDatePicker.SelectedDate.Value, EndTimeBox.Text, allDay, isEnd: true, out var end))
         {
-            ValidationText.Text = "시간을 HH:mm 형식으로 입력하세요.";
+            ValidationText.Text = "시간을 HH:mm 또는 HHmm 형식으로 입력하세요.";
             return;
         }
         if (end < start)
@@ -138,6 +147,28 @@ public partial class EventEditorWindow : Window
     private void FormatToggle_Click(object sender, RoutedEventArgs e) => UpdateTitlePreview();
     private void IncreaseFont_Click(object sender, RoutedEventArgs e) => AdjustFontSize(1);
     private void DecreaseFont_Click(object sender, RoutedEventArgs e) => AdjustFontSize(-1);
+
+    private void TimeBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key is not (Key.Enter or Key.Return) || sender is not WpfTextBox textBox)
+            return;
+
+        e.Handled = true;
+        if (TryNormalizeTimeBox(textBox))
+        {
+            textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+            return;
+        }
+
+        ValidationText.Text = "시간을 HH:mm 또는 HHmm 형식으로 입력하세요.";
+        textBox.SelectAll();
+    }
+
+    private void TimeBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is WpfTextBox textBox)
+            TryNormalizeTimeBox(textBox);
+    }
 
     private void EmojiCategory_Changed(object sender, SelectionChangedEventArgs e)
     {
@@ -222,6 +253,15 @@ public partial class EventEditorWindow : Window
 
     private void UpdateTimePanel() => TimePanel.IsEnabled = AllDayCheckBox.IsChecked != true;
 
+    private static bool TryNormalizeTimeBox(WpfTextBox textBox)
+    {
+        if (!TimeInputParser.TryNormalize(textBox.Text, out var normalized))
+            return false;
+        textBox.Text = normalized;
+        textBox.CaretIndex = textBox.Text.Length;
+        return true;
+    }
+
     private void LoadRecurrence(string? rule)
     {
         FrequencyCombo.SelectedIndex = 0;
@@ -245,7 +285,7 @@ public partial class EventEditorWindow : Window
         TimeOnly time;
         if (allDay)
             time = isEnd ? TimeOnly.MaxValue : TimeOnly.MinValue;
-        else if (!TimeOnly.TryParseExact(text.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out time))
+        else if (!TimeInputParser.TryParse(text, out time))
         {
             value = default;
             return false;

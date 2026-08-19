@@ -12,7 +12,9 @@ public sealed record WindowPlacement
 
 public sealed record AppSettings
 {
-    public int SchemaVersion { get; init; } = 1;
+    public const int CurrentSchemaVersion = 2;
+
+    public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public string AppearanceMode { get; init; } = "Dark";
     public ThemeSettings Theme { get; init; } = new();
     public WeatherSettings Weather { get; init; } = new();

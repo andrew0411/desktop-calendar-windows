@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -25,6 +26,7 @@ public partial class MainWindow : Window
     private bool _allowClose;
     private bool _applyingPlacement;
     private bool _isLayoutDragging;
+    private bool _isRefreshingToday;
 
     public MainWindow(MainWindowViewModel viewModel, DesktopHost desktopHost)
     {
@@ -37,6 +39,7 @@ public partial class MainWindow : Window
     }
 
     public event EventHandler? SettingsRequested;
+    public event EventHandler? ExitRequested;
     public event EventHandler? LayoutEditingChanged;
     public bool IsLayoutEditing => !_viewModel.IsLayoutLocked;
 
@@ -45,7 +48,6 @@ public partial class MainWindow : Window
     public async Task GoTodayAsync()
     {
         await _viewModel.GoTodayAsync();
-        UpdateVisibleEventCapacity();
     }
 
     public async Task ToggleLayoutEditingAsync()
@@ -104,7 +106,6 @@ public partial class MainWindow : Window
         if (normalized != _viewModel.Settings.Window)
             await _viewModel.SetWindowPlacementAsync(normalized);
         _desktopTimer.Start();
-        UpdateVisibleEventCapacity();
     }
 
     private void ApplyLayoutMode()
@@ -175,13 +176,11 @@ public partial class MainWindow : Window
     private async void PreviousMonth_Click(object sender, RoutedEventArgs e)
     {
         await _viewModel.MoveMonthAsync(-1);
-        UpdateVisibleEventCapacity();
     }
 
     private async void NextMonth_Click(object sender, RoutedEventArgs e)
     {
         await _viewModel.MoveMonthAsync(1);
-        UpdateVisibleEventCapacity();
     }
 
     private async void Today_Click(object sender, RoutedEventArgs e)
@@ -190,6 +189,7 @@ public partial class MainWindow : Window
     }
     private async void LayoutEdit_Click(object sender, RoutedEventArgs e) => await ToggleLayoutEditingAsync();
     private void Settings_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+    private void Exit_Click(object sender, RoutedEventArgs e) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
     private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) => _viewModel.ToolbarVisible = true;
     private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) => _viewModel.ToolbarVisible = !_viewModel.IsLayoutLocked;
@@ -212,7 +212,6 @@ public partial class MainWindow : Window
         {
             _isLayoutDragging = false;
         }
-        UpdateVisibleEventCapacity();
         await SaveCurrentPlacementAsync();
         _desktopHost.RestoreZOrder();
     }
@@ -276,6 +275,24 @@ public partial class MainWindow : Window
             day.ToggleActionMenu();
     }
 
+    private void Weather_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: CalendarDayViewModel day })
+        {
+            day.ToggleWeatherPopup();
+            e.Handled = true;
+        }
+    }
+
+    private void WeatherPopupClose_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: CalendarDayViewModel day })
+        {
+            day.IsWeatherPopupOpen = false;
+            e.Handled = true;
+        }
+    }
+
     private void NewEventFromMenu_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: CalendarDayViewModel day })
@@ -284,22 +301,11 @@ public partial class MainWindow : Window
         OpenNewEventEditor(day.Date);
     }
 
-    private void MoreEvents_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement { DataContext: CalendarDayViewModel day })
-        {
-            var window = new DayEventsWindow(day) { Owner = this };
-            window.EventSelected += (_, item) => OpenEventEditor(item.Occurrence.Source);
-            window.ShowDialog();
-        }
-    }
-
     private async void SelectedHighlight_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: CalendarDayViewModel { SelectedEvent: { } item } })
         {
             await _viewModel.SaveEventAsync(item.Occurrence.Source with { IsHighlighted = !item.Occurrence.Source.IsHighlighted });
-            UpdateVisibleEventCapacity();
         }
     }
 
@@ -308,7 +314,6 @@ public partial class MainWindow : Window
         if (sender is FrameworkElement { DataContext: CalendarDayViewModel { SelectedEvent: { } item } })
         {
             await _viewModel.SaveEventAsync(item.Occurrence.Source with { IsCompleted = !item.Occurrence.Source.IsCompleted });
-            UpdateVisibleEventCapacity();
         }
     }
 
@@ -338,7 +343,6 @@ public partial class MainWindow : Window
                 await _viewModel.DeleteEventAsync(item.Id);
             else if (editor.Result is not null)
                 await _viewModel.SaveEventAsync(editor.Result);
-            UpdateVisibleEventCapacity();
         }
         catch (Exception ex)
         {
@@ -348,7 +352,6 @@ public partial class MainWindow : Window
 
     private void Window_PlacementChanged(object? sender, EventArgs e)
     {
-        UpdateVisibleEventCapacity();
         if (_applyingPlacement || _isLayoutDragging || _viewModel.IsLayoutLocked || !IsLoaded)
             return;
         _placementTimer.Stop();
@@ -380,20 +383,28 @@ public partial class MainWindow : Window
         await _viewModel.SetWindowPlacementAsync(placement);
     }
 
-    private void DesktopTimer_Tick(object? sender, EventArgs e)
+    private async void DesktopTimer_Tick(object? sender, EventArgs e)
     {
         if (!_desktopHost.IsAttached || !_desktopHost.IsDesktopAvailable())
             AttachToDesktop();
-    }
 
-    private void UpdateVisibleEventCapacity()
-    {
-        if (ActualHeight <= 0)
+        if (_isRefreshingToday)
             return;
-        var cellHeight = Math.Max(48, (ActualHeight - 138) / 6);
-        var capacity = Math.Clamp((int)Math.Floor((cellHeight - 58) / 26), 1, 10);
-        foreach (var day in _viewModel.Days)
-            day.SetMaxVisibleEvents(capacity);
+
+        _isRefreshingToday = true;
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            await _viewModel.RefreshTodayAsync(today);
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceError($"오늘 날짜 표시를 갱신하지 못했습니다: {ex}");
+        }
+        finally
+        {
+            _isRefreshingToday = false;
+        }
     }
 
     private nint WindowMessageHook(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)

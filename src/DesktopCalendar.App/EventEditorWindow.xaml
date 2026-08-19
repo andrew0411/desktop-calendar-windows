@@ -178,8 +178,18 @@
                         <CheckBox x:Name="AllDayCheckBox" Content="종일 일정" Margin="0,14,0,0" Checked="AllDay_Changed" Unchecked="AllDay_Changed" />
                         <Grid x:Name="TimePanel" Margin="0,10,0,0">
                             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                            <StackPanel><TextBlock Text="시작 시간 (HH:mm)" Style="{StaticResource LabelText}"/><TextBox x:Name="StartTimeBox" Style="{StaticResource EditorTextBox}" /></StackPanel>
-                            <StackPanel Grid.Column="2"><TextBlock Text="종료 시간 (HH:mm)" Style="{StaticResource LabelText}"/><TextBox x:Name="EndTimeBox" Style="{StaticResource EditorTextBox}" /></StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="시작 시간 (HH:mm / HHmm)" Style="{StaticResource LabelText}"/>
+                                <TextBox x:Name="StartTimeBox" Style="{StaticResource EditorTextBox}" MaxLength="5"
+                                         ToolTip="예: 14:00 또는 1400" AutomationProperties.HelpText="14:00 또는 1400 형식으로 입력"
+                                         KeyDown="TimeBox_KeyDown" LostFocus="TimeBox_LostFocus" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="종료 시간 (HH:mm / HHmm)" Style="{StaticResource LabelText}"/>
+                                <TextBox x:Name="EndTimeBox" Style="{StaticResource EditorTextBox}" MaxLength="5"
+                                         ToolTip="예: 15:30 또는 1530" AutomationProperties.HelpText="15:30 또는 1530 형식으로 입력"
+                                         KeyDown="TimeBox_KeyDown" LostFocus="TimeBox_LostFocus" />
+                            </StackPanel>
                         </Grid>
                     </StackPanel>
                 </Border>

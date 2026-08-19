@@ -49,7 +49,9 @@
                         <Button Content="오늘" Click="Today_Click" Style="{DynamicResource ToolbarButton}" />
                         <Button Content="›" Click="NextMonth_Click" Style="{DynamicResource ToolbarButton}" />
                         <Button x:Name="LayoutButton" Content="↔ 위치·크기" Click="LayoutEdit_Click" ToolTip="캘린더 이동 및 크기 조정" Style="{DynamicResource ToolbarButton}" />
-                        <Button Content="⚙" Click="Settings_Click" Style="{DynamicResource ToolbarButton}" />
+                        <Button Content="⚙" Click="Settings_Click" ToolTip="설정" AutomationProperties.Name="설정" Style="{DynamicResource ToolbarButton}" />
+                        <Button Content="⏻ 종료" Click="Exit_Click" ToolTip="앱을 완전히 종료합니다"
+                                AutomationProperties.Name="앱 종료" Style="{DynamicResource ExitToolbarButton}" />
                     </StackPanel>
                 </Grid>
 
@@ -106,8 +108,8 @@
                                             </ControlTemplate>
                                         </Button.Template>
                                     </Button>
-                                    <StackPanel IsHitTestVisible="False">
-                                        <Border Width="28" Height="28" CornerRadius="14" HorizontalAlignment="Left">
+                                    <Border Grid.Row="0" Width="28" Height="28" CornerRadius="14"
+                                            HorizontalAlignment="Left" IsHitTestVisible="False">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="Transparent" />
@@ -133,93 +135,196 @@
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
-                                        </Border>
-                                        <ItemsControl ItemsSource="{Binding Holidays}" Margin="0,2,0,3">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type vm:HolidayViewModel}">
-                                                    <Border Background="{Binding BackgroundHex}" CornerRadius="5" Margin="0,1,0,0" Padding="5,2"
-                                                            ToolTip="{Binding DisplayText}">
-                                                        <TextBlock Text="{Binding DisplayText}" Foreground="White" FontSize="10"
-                                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    </Border>
+                                    <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Margin="34,1,1,0" Panel.ZIndex="30"
+                                          Visibility="{Binding HasWeather, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Button x:Name="WeatherButton" Click="Weather_Click" Style="{DynamicResource WeatherCompactButton}"
+                                                ToolTip="클릭하여 시간대별 날씨 보기" AutomationProperties.Name="시간대별 날씨 상세 보기">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Weather.Icon}" FontFamily="Segoe UI Emoji" FontSize="11"
+                                                           Foreground="{Binding Weather.IconColorHex}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Weather.MaximumText}" Margin="3,0,0,0" FontSize="10" FontWeight="SemiBold"
+                                                           Foreground="#FFFFA06B" VerticalAlignment="Center" />
+                                                <TextBlock Text="/" Margin="1,0" FontSize="9" Foreground="{Binding DataContext.Theme.Date.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" Opacity="0.62" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Weather.MinimumText}" FontSize="10" FontWeight="SemiBold"
+                                                           Foreground="#FF78B7FF" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Popup x:Name="WeatherPopup" IsOpen="{Binding IsWeatherPopupOpen, Mode=TwoWay}"
+                                               PlacementTarget="{Binding ElementName=WeatherButton}" Placement="Bottom"
+                                               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                            <Border DataContext="{Binding PlacementTarget.DataContext, ElementName=WeatherPopup}"
+                                                    Width="680" Margin="0,7,0,0" Padding="18"
+                                                    Background="{DynamicResource UiSurfaceElevatedBrush}"
+                                                    BorderBrush="{DynamicResource UiBorderStrongBrush}" BorderThickness="1" CornerRadius="16">
+                                                <Border.Effect><DropShadowEffect Color="#90000000" BlurRadius="28" ShadowDepth="7" Opacity="0.62" /></Border.Effect>
+                                                <StackPanel>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Weather.DateTitle}" Foreground="{DynamicResource UiTextPrimaryBrush}"
+                                                                       FontSize="18" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding Weather.LocationName}" Foreground="{DynamicResource UiTextMutedBrush}"
+                                                                       FontSize="11" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <Button Grid.Column="1" Content="×" Click="WeatherPopupClose_Click"
+                                                                AutomationProperties.Name="날씨 상세 닫기" Style="{DynamicResource WeatherPopupCloseButton}" />
+                                                    </Grid>
+                                                    <Grid Margin="0,14,0,14">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                        <Border Width="54" Height="54" CornerRadius="16" Background="{DynamicResource UiAccentFaintBrush}">
+                                                            <TextBlock Text="{Binding Weather.Icon}" FontFamily="Segoe UI Emoji" FontSize="30"
+                                                                       Foreground="{Binding Weather.IconColorHex}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Weather.SummaryText}" Foreground="{DynamicResource UiTextSecondaryBrush}"
+                                                                       FontSize="13" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding Weather.UpdatedText}" Foreground="{DynamicResource UiTextMutedBrush}"
+                                                                       FontSize="11" Margin="0,4,0,0" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <TextBlock Text="시간대별 예보" Foreground="{DynamicResource UiTextPrimaryBrush}"
+                                                               FontSize="13" FontWeight="SemiBold" Margin="1,0,0,9" />
+                                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                                                  CanContentScroll="False" PanningMode="HorizontalOnly" Padding="0,0,0,7">
+                                                        <ItemsControl ItemsSource="{Binding Weather.Hourly}"
+                                                                      Visibility="{Binding Weather.HasHourly, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate DataType="{x:Type vm:WeatherHourViewModel}">
+                                                                    <Border Width="92" MinHeight="172" Margin="0,0,8,0" Padding="9,10"
+                                                                            Background="{DynamicResource UiSurfaceSubtleBrush}"
+                                                                            BorderBrush="{DynamicResource UiBorderBrush}" BorderThickness="1" CornerRadius="12">
+                                                                        <StackPanel>
+                                                                            <TextBlock Text="{Binding TimeText}" Foreground="{DynamicResource UiTextSecondaryBrush}"
+                                                                                       FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                                            <TextBlock Text="{Binding Icon}" FontFamily="Segoe UI Emoji" FontSize="25"
+                                                                                       Foreground="{Binding IconColorHex}" HorizontalAlignment="Center" Margin="0,7,0,3" />
+                                                                            <TextBlock Text="{Binding TemperatureText}" Foreground="{DynamicResource UiTextPrimaryBrush}"
+                                                                                       FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                                            <TextBlock Text="{Binding Description}" Foreground="{DynamicResource UiTextMutedBrush}"
+                                                                                       FontSize="10" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="72" />
+                                                                            <TextBlock Text="{Binding ApparentTemperatureText}" Foreground="{DynamicResource UiTextMutedBrush}"
+                                                                                       FontSize="9.5" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                                                                            <Border Height="1" Background="{DynamicResource UiBorderBrush}" Margin="3,7,3,6" />
+                                                                            <TextBlock Text="{Binding PrecipitationProbabilityText}" Foreground="#FF78B7FF"
+                                                                                       FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                                                            <TextBlock Text="{Binding PrecipitationText}" Foreground="{DynamicResource UiTextMutedBrush}"
+                                                                                       FontSize="9.5" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </ScrollViewer>
+                                                    <TextBlock Text="시간대별 상세 예보를 아직 불러오지 못했습니다. 네트워크 연결 후 날씨를 새로고침하세요."
+                                                               Foreground="{DynamicResource UiTextMutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="2,5,2,2">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Weather.HasHourly}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                    <ScrollViewer Grid.Row="1" Margin="0,1,0,1"
+                                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                  PanningMode="VerticalOnly" CanContentScroll="False" Focusable="False"
+                                                  AutomationProperties.Name="날짜 일정 스크롤 목록">
+                                        <ScrollViewer.Resources>
+                                            <Style x:Key="CalendarItemContainerStyle" TargetType="Border">
+                                                <Setter Property="Margin" Value="0,1" />
+                                                <Setter Property="Padding" Value="5,1" />
+                                                <Setter Property="CornerRadius" Value="4.5" />
+                                            </Style>
+                                            <Style x:Key="CalendarItemTextStyle" TargetType="TextBlock">
+                                                <Setter Property="FontFamily" Value="{Binding DataContext.Theme.Event.Family, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                <Setter Property="FontSize" Value="{Binding DataContext.Theme.Event.Size, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                <Setter Property="Foreground" Value="{Binding DataContext.Theme.Event.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                <Setter Property="VerticalAlignment" Value="Center" />
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                            </Style>
+                                            <Style TargetType="ScrollBar" BasedOn="{StaticResource EventScrollBarStyle}" />
+                                        </ScrollViewer.Resources>
+                                        <StackPanel>
+                                            <ItemsControl ItemsSource="{Binding Holidays}" IsHitTestVisible="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type vm:HolidayViewModel}">
+                                                        <Border Style="{StaticResource CalendarItemContainerStyle}"
+                                                                Background="{Binding BackgroundHex}" ToolTip="{Binding DisplayText}">
+                                                            <TextBlock Text="{Binding DisplayText}"
+                                                                       Style="{StaticResource CalendarItemTextStyle}"
+                                                                       FontWeight="SemiBold" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <ItemsControl ItemsSource="{Binding AllEvents}" PreviewMouseMove="Events_PreviewMouseMove">
+                                                <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:EventOccurrenceViewModel}">
+                                                    <Border ToolTip="{Binding ToolTipText}" Cursor="Hand"
+                                                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            PreviewMouseLeftButtonDown="Event_MouseLeftButtonDown" MouseEnter="Event_MouseEnter">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border" BasedOn="{StaticResource CalendarItemContainerStyle}">
+                                                                <Setter Property="Background" Value="{Binding BackgroundHex}" />
+                                                                <Setter Property="BorderBrush" Value="{Binding ColorHex}" />
+                                                                <Setter Property="BorderThickness" Value="3,0,0,0" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource UiAccentHoverBrush}" />
+                                                                        <Setter Property="BorderThickness" Value="2" />
+                                                                        <Setter Property="Background" Value="{DynamicResource UiAccentSoftBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Width="{Binding FontSize}" Height="{Binding FontSize}"
+                                                                    MinWidth="13" MinHeight="13" CornerRadius="99" Margin="0,0,5,0"
+                                                                    Background="{DynamicResource UiSuccessBrush}"
+                                                                    Visibility="{Binding IsCompleted, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                                <Path Data="M 3 8 L 7 12 L 14 4" Stretch="Uniform" Margin="2"
+                                                                      Stroke="White" StrokeThickness="2"
+                                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                                            </Border>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Emoji}" FontFamily="Segoe UI Emoji" FontSize="{Binding FontSize}"
+                                                                       Margin="0,0,5,0" VerticalAlignment="Center"
+                                                                       Visibility="{Binding HasEmoji, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                            <TextBlock Grid.Column="2" Text="{Binding DisplayText}"
+                                                                       FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}" FontStyle="{Binding FontStyle}"
+                                                                       TextDecorations="{Binding TextDecorations}">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CalendarItemTextStyle}">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{DynamicResource UiSuccessBrush}" />
+                                                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
                                                     </Border>
                                                 </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="34,1,1,0" Padding="5,2"
-                                            Background="#18000000" CornerRadius="7" Panel.ZIndex="15"
-                                            Visibility="{Binding HasWeather, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                            ToolTip="{Binding Weather.ToolTipText}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Weather.Icon}" FontFamily="Segoe UI Emoji" FontSize="11"
-                                                       Foreground="{Binding Weather.IconColorHex}" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding Weather.MaximumText}" Margin="3,0,0,0" FontSize="10" FontWeight="SemiBold"
-                                                       Foreground="#FFFFA06B" VerticalAlignment="Center" />
-                                            <TextBlock Text="/" Margin="1,0" FontSize="9" Foreground="{Binding DataContext.Theme.Date.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" Opacity="0.62" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding Weather.MinimumText}" FontSize="10" FontWeight="SemiBold"
-                                                       Foreground="#FF78B7FF" VerticalAlignment="Center" />
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
                                         </StackPanel>
-                                    </Border>
-                                    <ItemsControl Grid.Row="1" ItemsSource="{Binding VisibleEvents}" PreviewMouseMove="Events_PreviewMouseMove">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type vm:EventOccurrenceViewModel}">
-                                                <Border Margin="0,1.5" Padding="6,3" ToolTip="{Binding ToolTipText}" Cursor="Hand"
-                                                        Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                        PreviewMouseLeftButtonDown="Event_MouseLeftButtonDown" MouseEnter="Event_MouseEnter">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Background" Value="{Binding BackgroundHex}" />
-                                                            <Setter Property="BorderBrush" Value="{Binding ColorHex}" />
-                                                            <Setter Property="BorderThickness" Value="3,0,0,0" />
-                                                            <Setter Property="CornerRadius" Value="5" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                                    <Setter Property="BorderBrush" Value="{DynamicResource UiAccentHoverBrush}" />
-                                                                    <Setter Property="BorderThickness" Value="2" />
-                                                                    <Setter Property="Background" Value="{DynamicResource UiAccentSoftBrush}" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" />
-                                                            <ColumnDefinition Width="Auto" />
-                                                            <ColumnDefinition Width="*" />
-                                                        </Grid.ColumnDefinitions>
-                                                        <Border Width="17" Height="17" CornerRadius="9" Margin="0,0,5,0"
-                                                                Background="{DynamicResource UiSuccessBrush}"
-                                                                Visibility="{Binding IsCompleted, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                            <Path Data="M 3 8 L 7 12 L 14 4" Stroke="White" StrokeThickness="2"
-                                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                                                        </Border>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Emoji}" FontFamily="Segoe UI Emoji" FontSize="{Binding FontSize}"
-                                                                   Margin="0,0,5,0" VerticalAlignment="Center"
-                                                                   Visibility="{Binding HasEmoji, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                                        <TextBlock Grid.Column="2" Text="{Binding DisplayText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                                                                   FontFamily="{Binding DataContext.Theme.Event.Family, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                   FontSize="{Binding FontSize}" FontWeight="{Binding FontWeight}" FontStyle="{Binding FontStyle}"
-                                                                   TextDecorations="{Binding TextDecorations}">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Foreground" Value="{Binding DataContext.Theme.Event.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding IsCompleted}" Value="True">
-                                                                            <Setter Property="Foreground" Value="{DynamicResource UiSuccessBrush}" />
-                                                                            <Setter Property="FontWeight" Value="SemiBold" />
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                    </ScrollViewer>
                                     <Grid Grid.Row="2" Panel.ZIndex="20">
-                                        <Button Content="{Binding HiddenText}" Visibility="{Binding HasHiddenEvents, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                HorizontalAlignment="Left" Click="MoreEvents_Click" Style="{DynamicResource MoreButton}" />
                                         <Button x:Name="EventActionsButton" Content="{Binding ActionMenuGlyph}" ToolTip="일정 추가 또는 일정 상태 변경"
                                                 AutomationProperties.Name="일정 추가 및 작업 메뉴" HorizontalAlignment="Right"
                                                 Click="EventActionsToggle_Click" Style="{DynamicResource EventMenuPlusButton}" />
@@ -275,13 +380,103 @@
             <Setter Property="Margin" Value="2,0" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
-        <Style x:Key="MoreButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+        <Style x:Key="WeatherCompactButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Padding" Value="5,2" />
+            <Setter Property="Background" Value="#18000000" />
+            <Setter Property="BorderBrush" Value="#24FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style x:Key="WeatherPopupCloseButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Width" Value="30" /><Setter Property="Height" Value="30" /><Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceSubtleBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource UiTextSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}" />
+            <Setter Property="FontSize" Value="18" />
+        </Style>
+        <Style x:Key="ExitToolbarButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+            <Setter Property="Background" Value="{DynamicResource UiDangerSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource UiDangerBrush}" />
+            <Setter Property="BorderBrush" Value="#78FF6B78" />
+        </Style>
+        <Style x:Key="EventScrollPageButtonStyle" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="EventScrollThumbStyle" TargetType="Thumb">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="MinHeight" Value="22" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Grid Width="7" Background="Transparent">
+                            <Border x:Name="ThumbChrome" Width="5" Margin="0,1"
+                                    HorizontalAlignment="Center"
+                                    Background="{DynamicResource UiAccentBrush}"
+                                    CornerRadius="2.5" Opacity="0.66" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbChrome" Property="Width" Value="7" />
+                                <Setter TargetName="ThumbChrome" Property="Background" Value="{DynamicResource UiAccentHoverBrush}" />
+                                <Setter TargetName="ThumbChrome" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbChrome" Property="Width" Value="7" />
+                                <Setter TargetName="ThumbChrome" Property="Background" Value="{DynamicResource UiAccentBrush}" />
+                                <Setter TargetName="ThumbChrome" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="EventScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="MinWidth" Value="8" />
+            <Setter Property="Margin" Value="2,1,0,1" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="#FFD5DAE4" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="4,2" />
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Opacity" Value="0.7" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Width="8" Background="Transparent">
+                            <Border x:Name="ScrollRail" Width="7" HorizontalAlignment="Center"
+                                    Background="{DynamicResource UiSurfaceSubtleBrush}"
+                                    CornerRadius="4" Opacity="0" />
+                            <Track x:Name="PART_Track" Orientation="Vertical" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}"
+                                                  Style="{StaticResource EventScrollPageButtonStyle}" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource EventScrollThumbStyle}" />
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}"
+                                                  Style="{StaticResource EventScrollPageButtonStyle}" />
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ScrollRail" Property="Opacity" Value="0.38" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="EventMenuPlusButton" TargetType="Button">
             <Setter Property="Width" Value="26" /><Setter Property="Height" Value="26" /><Setter Property="Padding" Value="0" />

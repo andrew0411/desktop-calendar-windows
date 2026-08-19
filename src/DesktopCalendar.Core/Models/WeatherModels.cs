@@ -46,6 +46,14 @@ public sealed record DailyWeatherForecast(
     double MaximumTemperature,
     double MinimumTemperature);
 
+public sealed record HourlyWeatherForecast(
+    DateTime LocalTime,
+    int WeatherCode,
+    double Temperature,
+    double ApparentTemperature,
+    double PrecipitationProbability,
+    double Precipitation);
+
 public sealed record WeatherSnapshot
 {
     public DateTimeOffset UpdatedUtc { get; init; } = DateTimeOffset.UtcNow;
@@ -54,6 +62,7 @@ public sealed record WeatherSnapshot
     public double Longitude { get; init; }
     public WeatherTemperatureUnit TemperatureUnit { get; init; } = WeatherTemperatureUnit.Celsius;
     public IReadOnlyList<DailyWeatherForecast> Daily { get; init; } = [];
+    public IReadOnlyList<HourlyWeatherForecast> Hourly { get; init; } = [];
 }
 
 public static class WeatherPresentation

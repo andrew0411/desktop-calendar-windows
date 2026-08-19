@@ -15,6 +15,7 @@ public sealed class MainWindowViewModel(
 {
     private readonly SemaphoreSlim _weatherRefreshLock = new(1, 1);
     private DateOnly _displayMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
     private AppSettings _settings = new();
     private bool _toolbarVisible;
     private WeatherSnapshot? _weatherSnapshot;
@@ -57,8 +58,28 @@ public sealed class MainWindowViewModel(
     public async Task InitializeAsync()
     {
         await repository.InitializeAsync();
-        Settings = await settingsStore.LoadAsync();
+        var loadedSettings = await settingsStore.LoadAsync();
+        if (loadedSettings.SchemaVersion < AppSettings.CurrentSchemaVersion)
+        {
+            var events = await repository.GetAllAsync();
+            await backupService.CreateSafetyBackupAsync(new BackupBundle
+            {
+                Settings = loadedSettings,
+                Events = events
+            });
+            var updatedUtc = DateTimeOffset.UtcNow;
+            await repository.ReplaceAllAsync(events.Select(item => item with
+            {
+                TitleFontSize = loadedSettings.Theme.Event.Size,
+                UpdatedUtc = updatedUtc
+            }));
+            loadedSettings = loadedSettings with { SchemaVersion = AppSettings.CurrentSchemaVersion };
+            await settingsStore.SaveAsync(loadedSettings);
+        }
+        Settings = loadedSettings;
         _weatherSnapshot = await weatherService.LoadCacheAsync();
+        _today = DateOnly.FromDateTime(DateTime.Today);
+        _displayMonth = new DateOnly(_today.Year, _today.Month, 1);
         await RefreshAsync();
         await CreateDailyBackupAsync();
     }
@@ -72,9 +93,46 @@ public sealed class MainWindowViewModel(
 
     public async Task GoTodayAsync()
     {
-        _displayMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        _today = DateOnly.FromDateTime(DateTime.Today);
+        _displayMonth = new DateOnly(_today.Year, _today.Month, 1);
         OnPropertyChanged(nameof(MonthTitle));
         await RefreshAsync();
+    }
+
+    public async Task<bool> RefreshTodayAsync(DateOnly today)
+    {
+        if (today == _today)
+            return false;
+
+        var previousToday = _today;
+        var previousDisplayMonth = _displayMonth;
+        var wasShowingCurrentMonth = _displayMonth.Year == previousToday.Year &&
+                                     _displayMonth.Month == previousToday.Month;
+        var monthChanged = previousToday.Year != today.Year || previousToday.Month != today.Month;
+        _today = today;
+
+        if (wasShowingCurrentMonth && monthChanged)
+        {
+            _displayMonth = new DateOnly(today.Year, today.Month, 1);
+            try
+            {
+                await RefreshAsync();
+                OnPropertyChanged(nameof(MonthTitle));
+            }
+            catch
+            {
+                _today = previousToday;
+                _displayMonth = previousDisplayMonth;
+                throw;
+            }
+        }
+        else
+        {
+            foreach (var day in Days)
+                day.SetIsToday(day.Date == today);
+        }
+
+        return true;
     }
 
     public async Task<CalendarEvent> CreateQuickEventAsync(DateOnly date, string title)
@@ -107,16 +165,44 @@ public sealed class MainWindowViewModel(
         await RefreshAsync();
     }
 
-    public async Task ApplySettingsAsync(AppSettings settings)
+    public async Task ApplySettingsAsync(AppSettings settings, bool applyEventFontSizeToAll = false)
     {
+        if (applyEventFontSizeToAll)
+        {
+            var updatedUtc = DateTimeOffset.UtcNow;
+            var events = await repository.GetAllAsync();
+            await repository.ReplaceAllAsync(events.Select(item => item with
+            {
+                TitleFontSize = settings.Theme.Event.Size,
+                UpdatedUtc = updatedUtc
+            }));
+        }
+
         Settings = settings;
         ApplyWeatherToDays();
         await settingsStore.SaveAsync(settings);
+
+        if (applyEventFontSizeToAll)
+            await RefreshAsync();
     }
 
     public void PreviewSettings(AppSettings settings)
     {
+        var eventFontSizeChanged = Math.Abs(Settings.Theme.Event.Size - settings.Theme.Event.Size) > 0.001;
         Settings = settings;
+        if (eventFontSizeChanged)
+            ApplyEventFontSizeToDays(settings.Theme.Event.Size);
+        ApplyWeatherToDays();
+    }
+
+    public void RestoreSettingsPreview(AppSettings settings)
+    {
+        Settings = settings;
+        foreach (var day in Days)
+        foreach (var item in day.AllEvents)
+            item.SetFontSize(item.Occurrence.Source.TitleFontSize > 0
+                ? item.Occurrence.Source.TitleFontSize
+                : settings.Theme.Event.Size);
         ApplyWeatherToDays();
     }
 
@@ -132,7 +218,9 @@ public sealed class MainWindowViewModel(
         try
         {
             IsWeatherRefreshing = true;
-            if (!force && IsMatchingSnapshot(_weatherSnapshot, requested) && IsFresh(_weatherSnapshot!, requested.RefreshHours))
+            if (!force && IsMatchingSnapshot(_weatherSnapshot, requested) &&
+                _weatherSnapshot!.Hourly.Count > 0 &&
+                IsFresh(_weatherSnapshot, requested.RefreshHours))
             {
                 ApplyWeatherToDays();
                 return _weatherSnapshot!;
@@ -199,7 +287,7 @@ public sealed class MainWindowViewModel(
         await backupService.CreateSafetyBackupAsync(new BackupBundle { Settings = Settings, Events = beforeEvents });
         var bundle = await backupService.ImportAsync(path);
         await repository.ReplaceAllAsync(bundle.Events);
-        await ApplySettingsAsync(bundle.Settings);
+        await ApplySettingsAsync(bundle.Settings with { SchemaVersion = AppSettings.CurrentSchemaVersion });
         await RefreshAsync();
     }
 
@@ -233,7 +321,7 @@ public sealed class MainWindowViewModel(
         Days.Clear();
         foreach (var date in dates)
         {
-            var day = new CalendarDayViewModel(date, date.Month == _displayMonth.Month, date == DateOnly.FromDateTime(DateTime.Today));
+            var day = new CalendarDayViewModel(date, date.Month == _displayMonth.Month, date == _today);
             day.SetEvents(occurrences
                 .Where(item => DateOnly.FromDateTime(item.Start.LocalDateTime) <= date && DateOnly.FromDateTime(item.End.LocalDateTime) >= date)
                 .Select(item => new EventOccurrenceViewModel(item, Theme.Event.Size)));
@@ -254,9 +342,21 @@ public sealed class MainWindowViewModel(
         foreach (var day in Days)
         {
             day.SetWeather(forecasts.TryGetValue(day.Date, out var forecast)
-                ? new WeatherDayViewModel(forecast, settings.TemperatureUnit, _weatherSnapshot!.LocationName)
+                ? new WeatherDayViewModel(
+                    forecast,
+                    settings.TemperatureUnit,
+                    _weatherSnapshot!.LocationName,
+                    _weatherSnapshot.UpdatedUtc,
+                    _weatherSnapshot.Hourly)
                 : null);
         }
+    }
+
+    private void ApplyEventFontSizeToDays(double fontSize)
+    {
+        foreach (var day in Days)
+        foreach (var item in day.AllEvents)
+            item.SetFontSize(fontSize);
     }
 
     private static bool IsMatchingSnapshot(WeatherSnapshot? snapshot, WeatherSettings settings) =>

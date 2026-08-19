@@ -55,6 +55,7 @@ public sealed class OpenMeteoWeatherService : IWeatherService
         var url = "https://api.open-meteo.com/v1/forecast" +
                   $"?latitude={latitude}&longitude={longitude}" +
                   "&daily=weather_code,temperature_2m_max,temperature_2m_min" +
+                  "&hourly=weather_code,temperature_2m,apparent_temperature,precipitation_probability,precipitation" +
                   $"&temperature_unit={apiUnit}&timezone=auto&forecast_days=16";
 
         var response = await _httpClient.GetFromJsonAsync<ForecastResponse>(url, JsonOptions, cancellationToken)
@@ -71,6 +72,38 @@ public sealed class OpenMeteoWeatherService : IWeatherService
                 forecasts.Add(new DailyWeatherForecast(date, daily.WeatherCode![index], daily.Maximum![index], daily.Minimum![index]));
         }
 
+        var hourlyForecasts = new List<HourlyWeatherForecast>();
+        if (response.Hourly is { } hourly)
+        {
+            var hourlyCount = new[]
+            {
+                hourly.Time?.Length ?? 0,
+                hourly.WeatherCode?.Length ?? 0,
+                hourly.Temperature?.Length ?? 0,
+                hourly.ApparentTemperature?.Length ?? 0,
+                hourly.PrecipitationProbability?.Length ?? 0,
+                hourly.Precipitation?.Length ?? 0
+            }.Min();
+            for (var index = 0; index < hourlyCount; index++)
+            {
+                if (DateTime.TryParseExact(
+                        hourly.Time![index],
+                        "yyyy-MM-dd'T'HH:mm",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out var localTime))
+                {
+                    hourlyForecasts.Add(new HourlyWeatherForecast(
+                        localTime,
+                        hourly.WeatherCode![index],
+                        hourly.Temperature![index],
+                        hourly.ApparentTemperature![index],
+                        hourly.PrecipitationProbability![index],
+                        hourly.Precipitation![index]));
+                }
+            }
+        }
+
         return new WeatherSnapshot
         {
             UpdatedUtc = DateTimeOffset.UtcNow,
@@ -78,7 +111,8 @@ public sealed class OpenMeteoWeatherService : IWeatherService
             Latitude = location.Latitude,
             Longitude = location.Longitude,
             TemperatureUnit = unit,
-            Daily = forecasts
+            Daily = forecasts,
+            Hourly = hourlyForecasts
         };
     }
 
@@ -140,6 +174,8 @@ public sealed class OpenMeteoWeatherService : IWeatherService
     {
         [JsonPropertyName("daily")]
         public DailyResponse? Daily { get; init; }
+        [JsonPropertyName("hourly")]
+        public HourlyResponse? Hourly { get; init; }
     }
 
     private sealed class DailyResponse
@@ -152,5 +188,21 @@ public sealed class OpenMeteoWeatherService : IWeatherService
         public double[]? Maximum { get; init; }
         [JsonPropertyName("temperature_2m_min")]
         public double[]? Minimum { get; init; }
+    }
+
+    private sealed class HourlyResponse
+    {
+        [JsonPropertyName("time")]
+        public string[]? Time { get; init; }
+        [JsonPropertyName("weather_code")]
+        public int[]? WeatherCode { get; init; }
+        [JsonPropertyName("temperature_2m")]
+        public double[]? Temperature { get; init; }
+        [JsonPropertyName("apparent_temperature")]
+        public double[]? ApparentTemperature { get; init; }
+        [JsonPropertyName("precipitation_probability")]
+        public double[]? PrecipitationProbability { get; init; }
+        [JsonPropertyName("precipitation")]
+        public double[]? Precipitation { get; init; }
     }
 }

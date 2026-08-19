@@ -1,4 +1,6 @@
+using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using DesktopCalendar.Core.Models;
 using DesktopCalendar.Infrastructure;
@@ -30,13 +32,23 @@ public sealed class WeatherServiceTests
     {
         var handler = new StubHttpHandler(request =>
         {
-            var json = request.RequestUri!.Host.StartsWith("geocoding", StringComparison.OrdinalIgnoreCase)
-                ? """
+            string json;
+            if (request.RequestUri!.Host.StartsWith("geocoding", StringComparison.OrdinalIgnoreCase))
+            {
+                json = """
                   {"results":[{"name":"시카고","admin1":"일리노이","country":"미국","latitude":41.85,"longitude":-87.65,"timezone":"America/Chicago"}]}
-                  """
-                : """
-                  {"daily":{"time":["2026-08-18","2026-08-19"],"weather_code":[3,61],"temperature_2m_max":[28.4,25.1],"temperature_2m_min":[19.2,18.6]}}
                   """;
+            }
+            else
+            {
+                StringAssert.Contains(request.RequestUri.Query, "hourly=weather_code,temperature_2m,apparent_temperature,precipitation_probability,precipitation");
+                json = """
+                  {
+                    "daily":{"time":["2026-08-18","2026-08-19"],"weather_code":[3,61],"temperature_2m_max":[28.4,25.1],"temperature_2m_min":[19.2,18.6]},
+                    "hourly":{"time":["2026-08-18T14:00","2026-08-18T15:00"],"weather_code":[3,61],"temperature_2m":[27.1,25.8],"apparent_temperature":[28.0,26.2],"precipitation_probability":[10,75],"precipitation":[0,1.4]}
+                  }
+                  """;
+            }
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -53,12 +65,17 @@ public sealed class WeatherServiceTests
         Assert.AreEqual(new DateOnly(2026, 8, 18), snapshot.Daily[0].Date);
         Assert.AreEqual(3, snapshot.Daily[0].WeatherCode);
         Assert.AreEqual(28.4, snapshot.Daily[0].MaximumTemperature, 0.001);
+        Assert.HasCount(2, snapshot.Hourly);
+        Assert.AreEqual(new DateTime(2026, 8, 18, 14, 0, 0), snapshot.Hourly[0].LocalTime);
+        Assert.AreEqual(75, snapshot.Hourly[1].PrecipitationProbability, 0.001);
+        Assert.AreEqual(1.4, snapshot.Hourly[1].Precipitation, 0.001);
 
         await service.SaveCacheAsync(snapshot);
         var cached = await service.LoadCacheAsync();
         Assert.IsNotNull(cached);
         Assert.AreEqual(snapshot.LocationName, cached.LocationName);
         Assert.HasCount(2, cached.Daily);
+        Assert.HasCount(2, cached.Hourly);
     }
 
     [TestMethod]
