@@ -47,6 +47,8 @@ public static class UiThemeService
         resources["UiDangerBrush"] = Brush(light ? "#FFC73F55" : "#FFFF6B78");
         resources["UiDangerSoftBrush"] = Brush(light ? "#1CC73F55" : "#2BFF6B78");
         resources["UiSuccessBrush"] = Brush(light ? "#FF238A5B" : "#FF6BD6A2");
+        resources["UiWeatherHighBrush"] = Brush(light ? "#FFC54A25" : "#FFFFA06B");
+        resources["UiWeatherLowBrush"] = Brush(light ? "#FF276FB5" : "#FF78B7FF");
         resources["UiFooterBrush"] = Brush(light ? "#FAF8FAFD" : "#F3111725");
         resources["UiShadowColor"] = (WpfColor)WpfColorConverter.ConvertFromString(light ? "#300D1B34" : "#8A000000");
         foreach (Window window in WpfApplication.Current.Windows)

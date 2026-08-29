@@ -9,6 +9,7 @@ namespace DesktopCalendar.Infrastructure;
 
 public sealed class OpenMeteoWeatherService : IWeatherService
 {
+    private const int PastWeatherDays = 7;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -56,7 +57,7 @@ public sealed class OpenMeteoWeatherService : IWeatherService
                   $"?latitude={latitude}&longitude={longitude}" +
                   "&daily=weather_code,temperature_2m_max,temperature_2m_min" +
                   "&hourly=weather_code,temperature_2m,apparent_temperature,precipitation_probability,precipitation" +
-                  $"&temperature_unit={apiUnit}&timezone=auto&forecast_days=16";
+                  $"&temperature_unit={apiUnit}&timezone=auto&forecast_days=16&past_days={PastWeatherDays}";
 
         var response = await _httpClient.GetFromJsonAsync<ForecastResponse>(url, JsonOptions, cancellationToken)
                        ?? throw new InvalidDataException("날씨 서버에서 빈 응답을 받았습니다.");

@@ -52,6 +52,7 @@ public sealed class InfrastructureTests
             Location = "회의실 A",
             IsCompleted = true,
             IsHighlighted = true,
+            HighlightColorHex = EventHighlightPalette.Colors.Single(color => color.Name == "빨강").Hex,
             IsBold = true,
             IsItalic = true,
             TitleFontSize = 19
@@ -63,6 +64,7 @@ public sealed class InfrastructureTests
         Assert.AreEqual("회의실 A", saved[0].Location);
         Assert.IsTrue(saved[0].IsCompleted);
         Assert.IsTrue(saved[0].IsHighlighted);
+        Assert.AreEqual(EventHighlightPalette.Colors.Single(color => color.Name == "빨강").Hex, saved[0].HighlightColorHex);
         Assert.IsTrue(saved[0].IsBold);
         Assert.IsTrue(saved[0].IsItalic);
         Assert.AreEqual(19, saved[0].TitleFontSize, 0.001);
@@ -134,6 +136,7 @@ public sealed class InfrastructureTests
         Assert.AreEqual(string.Empty, events[0].Emoji);
         Assert.AreEqual(string.Empty, events[0].Location);
         Assert.IsFalse(events[0].IsCompleted);
+        Assert.AreEqual(EventHighlightPalette.DefaultColorHex, events[0].HighlightColorHex);
         Assert.IsTrue(Directory.GetFiles(_paths.BackupsDirectory, "calendar-pre-migration-*.db").Length == 1);
     }
 

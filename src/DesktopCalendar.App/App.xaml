@@ -26,6 +26,8 @@
         <SolidColorBrush x:Key="UiDangerBrush" Color="#FFFF6B78" />
         <SolidColorBrush x:Key="UiDangerSoftBrush" Color="#2BFF6B78" />
         <SolidColorBrush x:Key="UiSuccessBrush" Color="#FF6BD6A2" />
+        <SolidColorBrush x:Key="UiWeatherHighBrush" Color="#FFFFA06B" />
+        <SolidColorBrush x:Key="UiWeatherLowBrush" Color="#FF78B7FF" />
         <SolidColorBrush x:Key="UiFooterBrush" Color="#F3111725" />
         <Color x:Key="UiShadowColor">#8A000000</Color>
 

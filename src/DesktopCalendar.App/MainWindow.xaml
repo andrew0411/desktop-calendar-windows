@@ -139,15 +139,15 @@
                                     <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Margin="34,1,1,0" Panel.ZIndex="30"
                                           Visibility="{Binding HasWeather, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Button x:Name="WeatherButton" Click="Weather_Click" Style="{DynamicResource WeatherCompactButton}"
-                                                ToolTip="클릭하여 시간대별 날씨 보기" AutomationProperties.Name="시간대별 날씨 상세 보기">
+                                                 ToolTip="클릭하여 시간대별 날씨 보기" AutomationProperties.Name="시간대별 날씨 상세 보기">
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Weather.Icon}" FontFamily="Segoe UI Emoji" FontSize="11"
-                                                           Foreground="{Binding Weather.IconColorHex}" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding Weather.MaximumText}" Margin="3,0,0,0" FontSize="10" FontWeight="SemiBold"
-                                                           Foreground="#FFFFA06B" VerticalAlignment="Center" />
-                                                <TextBlock Text="/" Margin="1,0" FontSize="9" Foreground="{Binding DataContext.Theme.Date.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" Opacity="0.62" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding Weather.MinimumText}" FontSize="10" FontWeight="SemiBold"
-                                                           Foreground="#FF78B7FF" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Weather.Icon}" FontFamily="Segoe UI Emoji" FontSize="15"
+                                                           Foreground="{Binding Weather.IconColorHex}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Weather.MaximumText}" FontSize="11" FontWeight="Bold"
+                                                           Foreground="{DynamicResource UiWeatherHighBrush}" VerticalAlignment="Center" />
+                                                <Border Width="1" Height="11" Margin="4,0" Background="{DynamicResource UiBorderStrongBrush}" />
+                                                <TextBlock Text="{Binding Weather.MinimumText}" FontSize="11" FontWeight="Bold"
+                                                           Foreground="{DynamicResource UiWeatherLowBrush}" VerticalAlignment="Center" />
                                             </StackPanel>
                                         </Button>
                                         <Popup x:Name="WeatherPopup" IsOpen="{Binding IsWeatherPopupOpen, Mode=TwoWay}"
@@ -309,6 +309,12 @@
                                                                 <TextBlock.Style>
                                                                     <Style TargetType="TextBlock" BasedOn="{StaticResource CalendarItemTextStyle}">
                                                                         <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Occurrence.Source.IsHighlighted}" Value="True">
+                                                                                <Setter Property="Foreground" Value="#FF25262B" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{Binding DataContext.Theme.Event.ColorHex, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                                            </DataTrigger>
                                                                             <DataTrigger Binding="{Binding IsCompleted}" Value="True">
                                                                                 <Setter Property="Foreground" Value="{DynamicResource UiSuccessBrush}" />
                                                                                 <Setter Property="FontWeight" Value="SemiBold" />
@@ -342,11 +348,43 @@
                                                     <TextBlock Text="{Binding SelectedActionLabel}" Foreground="{DynamicResource UiTextSecondaryBrush}"
                                                                FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="190" Margin="3,0,3,7" />
                                                     <StackPanel Orientation="Horizontal">
-                                                        <Button Content="{Binding HighlightActionLabel}" IsEnabled="{Binding HasSelectedEvent}"
-                                                                AutomationProperties.Name="선택 일정 하이라이트" Click="SelectedHighlight_Click" Style="{DynamicResource CellActionButton}" Margin="0,0,6,0" />
+                                                        <Border Background="{DynamicResource UiAccentSoftBrush}" BorderBrush="{DynamicResource UiBorderBrush}"
+                                                                BorderThickness="1" CornerRadius="9" Margin="0,0,6,0">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="1"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                                <Button Content="{Binding HighlightActionLabel}" IsEnabled="{Binding HasSelectedEvent}"
+                                                                        AutomationProperties.Name="선택 일정 기본색 하이라이트" Click="SelectedHighlight_Click"
+                                                                        Style="{DynamicResource HighlightSplitPartButton}" />
+                                                                <Border Grid.Column="1" Margin="0,5" Background="{DynamicResource UiBorderBrush}" />
+                                                                <Button Grid.Column="2" Content="▾" IsEnabled="{Binding HasSelectedEvent}" ToolTip="하이라이트 색 선택"
+                                                                        AutomationProperties.Name="하이라이트 색 선택" Click="HighlightPaletteToggle_Click"
+                                                                        Style="{DynamicResource HighlightSplitPartButton}" Padding="7,6" />
+                                                            </Grid>
+                                                        </Border>
                                                         <Button Content="{Binding CompleteActionLabel}" IsEnabled="{Binding HasSelectedEvent}"
                                                                 AutomationProperties.Name="선택 일정 완료 상태" Click="SelectedComplete_Click" Style="{DynamicResource CellActionButton}" />
                                                     </StackPanel>
+                                                    <Border Background="{DynamicResource UiSurfaceBrush}" BorderBrush="{DynamicResource UiBorderBrush}"
+                                                            BorderThickness="1" CornerRadius="9" Padding="6" Margin="0,7,0,0"
+                                                            Visibility="{Binding IsHighlightPaletteOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                        <ItemsControl ItemsSource="{Binding HighlightColors}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Button Tag="{Binding}"
+                                                                            CommandParameter="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                            Click="SelectedHighlightColor_Click" ToolTip="{Binding Name}"
+                                                                            AutomationProperties.Name="{Binding Name, StringFormat={}{0} 하이라이트}"
+                                                                            Style="{DynamicResource CellActionButton}" Padding="5" Margin="2">
+                                                                        <Border Width="18" Height="18" CornerRadius="5" Background="{Binding Hex}"
+                                                                                BorderBrush="#50000000" BorderThickness="1" />
+                                                                    </Button>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </Border>
                                                 </StackPanel>
                                             </Border>
                                         </Popup>
@@ -381,9 +419,9 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style x:Key="WeatherCompactButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
-            <Setter Property="Padding" Value="5,2" />
-            <Setter Property="Background" Value="#18000000" />
-            <Setter Property="BorderBrush" Value="#24FFFFFF" />
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="Background" Value="{DynamicResource UiSurfaceSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource UiBorderStrongBrush}" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
         <Style x:Key="WeatherPopupCloseButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
@@ -526,6 +564,10 @@
         <Style x:Key="CellActionButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
             <Setter Property="Background" Value="{DynamicResource UiAccentSoftBrush}"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource UiBorderBrush}"/><Setter Property="Padding" Value="10,6"/><Setter Property="FontSize" Value="11"/>
+        </Style>
+        <Style x:Key="HighlightSplitPartButton" TargetType="Button" BasedOn="{StaticResource UiButtonBase}">
+            <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource UiTextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,6"/><Setter Property="FontSize" Value="11"/>
         </Style>
         <Style x:Key="WeekdayText" TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Center" />

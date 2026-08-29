@@ -7,7 +7,7 @@ namespace DesktopCalendar.Infrastructure;
 
 public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
 {
-    private const int CurrentSchemaVersion = 3;
+    private const int CurrentSchemaVersion = 4;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -40,6 +40,7 @@ public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
                     color_hex TEXT NOT NULL,
                     is_completed INTEGER NOT NULL DEFAULT 0,
                     is_highlighted INTEGER NOT NULL DEFAULT 0,
+                    highlight_color_hex TEXT NOT NULL DEFAULT '#FFFFF176',
                     is_bold INTEGER NOT NULL DEFAULT 0,
                     is_italic INTEGER NOT NULL DEFAULT 0,
                     title_font_size REAL NOT NULL DEFAULT 0,
@@ -48,7 +49,7 @@ public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
                     updated_utc TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS ix_events_start ON events(start_value);
-                PRAGMA user_version=3;
+                PRAGMA user_version=4;
                 """;
             await ExecuteAsync(connection, schema, cancellationToken);
         }
@@ -74,6 +75,16 @@ public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
                 const string migration = """
                     ALTER TABLE events ADD COLUMN emoji TEXT NOT NULL DEFAULT '';
                     PRAGMA user_version=3;
+                    """;
+                await ExecuteAsync(connection, migration, cancellationToken);
+                currentVersion = 3;
+            }
+
+            if (currentVersion < 4)
+            {
+                const string migration = """
+                    ALTER TABLE events ADD COLUMN highlight_color_hex TEXT NOT NULL DEFAULT '#FFFFF176';
+                    PRAGMA user_version=4;
                     """;
                 await ExecuteAsync(connection, migration, cancellationToken);
             }
@@ -110,13 +121,13 @@ public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
         await connection.OpenAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO events(id,title,emoji,notes,location,start_value,end_value,is_all_day,time_zone_id,color_hex,is_completed,is_highlighted,is_bold,is_italic,title_font_size,recurrence_rule,created_utc,updated_utc)
-            VALUES($id,$title,$emoji,$notes,$location,$start,$end,$allDay,$timeZone,$color,$completed,$highlighted,$bold,$italic,$fontSize,$recurrence,$created,$updated)
+            INSERT INTO events(id,title,emoji,notes,location,start_value,end_value,is_all_day,time_zone_id,color_hex,is_completed,is_highlighted,highlight_color_hex,is_bold,is_italic,title_font_size,recurrence_rule,created_utc,updated_utc)
+            VALUES($id,$title,$emoji,$notes,$location,$start,$end,$allDay,$timeZone,$color,$completed,$highlighted,$highlightColor,$bold,$italic,$fontSize,$recurrence,$created,$updated)
             ON CONFLICT(id) DO UPDATE SET
                 title=excluded.title, emoji=excluded.emoji, notes=excluded.notes, location=excluded.location, start_value=excluded.start_value,
                 end_value=excluded.end_value, is_all_day=excluded.is_all_day,
                 time_zone_id=excluded.time_zone_id, color_hex=excluded.color_hex,
-                is_completed=excluded.is_completed, is_highlighted=excluded.is_highlighted,
+                is_completed=excluded.is_completed, is_highlighted=excluded.is_highlighted, highlight_color_hex=excluded.highlight_color_hex,
                 is_bold=excluded.is_bold, is_italic=excluded.is_italic, title_font_size=excluded.title_font_size,
                 recurrence_rule=excluded.recurrence_rule, updated_utc=excluded.updated_utc;
             """;
@@ -155,8 +166,8 @@ public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText = """
-                INSERT INTO events(id,title,emoji,notes,location,start_value,end_value,is_all_day,time_zone_id,color_hex,is_completed,is_highlighted,is_bold,is_italic,title_font_size,recurrence_rule,created_utc,updated_utc)
-                VALUES($id,$title,$emoji,$notes,$location,$start,$end,$allDay,$timeZone,$color,$completed,$highlighted,$bold,$italic,$fontSize,$recurrence,$created,$updated);
+                INSERT INTO events(id,title,emoji,notes,location,start_value,end_value,is_all_day,time_zone_id,color_hex,is_completed,is_highlighted,highlight_color_hex,is_bold,is_italic,title_font_size,recurrence_rule,created_utc,updated_utc)
+                VALUES($id,$title,$emoji,$notes,$location,$start,$end,$allDay,$timeZone,$color,$completed,$highlighted,$highlightColor,$bold,$italic,$fontSize,$recurrence,$created,$updated);
                 """;
             AddParameters(command, item);
             await command.ExecuteNonQueryAsync(cancellationToken);
@@ -180,6 +191,7 @@ public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
         command.Parameters.AddWithValue("$color", item.ColorHex);
         command.Parameters.AddWithValue("$completed", item.IsCompleted ? 1 : 0);
         command.Parameters.AddWithValue("$highlighted", item.IsHighlighted ? 1 : 0);
+        command.Parameters.AddWithValue("$highlightColor", EventHighlightPalette.Normalize(item.HighlightColorHex));
         command.Parameters.AddWithValue("$bold", item.IsBold ? 1 : 0);
         command.Parameters.AddWithValue("$italic", item.IsItalic ? 1 : 0);
         command.Parameters.AddWithValue("$fontSize", item.TitleFontSize);
@@ -215,6 +227,7 @@ public sealed class SqliteEventRepository(AppPaths paths) : IEventRepository
                 ColorHex = reader.GetString(reader.GetOrdinal("color_hex")),
                 IsCompleted = reader.GetInt32(reader.GetOrdinal("is_completed")) == 1,
                 IsHighlighted = reader.GetInt32(reader.GetOrdinal("is_highlighted")) == 1,
+                HighlightColorHex = EventHighlightPalette.Normalize(reader.GetString(reader.GetOrdinal("highlight_color_hex"))),
                 IsBold = reader.GetInt32(reader.GetOrdinal("is_bold")) == 1,
                 IsItalic = reader.GetInt32(reader.GetOrdinal("is_italic")) == 1,
                 TitleFontSize = reader.GetDouble(reader.GetOrdinal("title_font_size")),
