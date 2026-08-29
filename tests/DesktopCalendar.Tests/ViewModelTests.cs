@@ -97,6 +97,93 @@ public sealed class ViewModelTests
     }
 
     [TestMethod]
+    public async Task MainViewModel_DefaultEventColorUpdatesExistingDefaultEventsButPreservesCustomColors()
+    {
+        const string originalDefault = "#FF6F83F1";
+        const string changedDefault = "#FF58B881";
+        const string customColor = "#FFFF9F43";
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var start = today.ToDateTime(TimeOnly.MinValue);
+        var offset = TimeZoneInfo.Local.GetUtcOffset(start);
+        var repository = new MemoryEventRepository([
+            new CalendarEvent
+            {
+                Title = "기본색 일정",
+                Start = new DateTimeOffset(start, offset),
+                End = new DateTimeOffset(start.AddDays(1).AddTicks(-1), offset),
+                ColorHex = originalDefault
+            },
+            new CalendarEvent
+            {
+                Title = "개별색 일정",
+                Start = new DateTimeOffset(start, offset),
+                End = new DateTimeOffset(start.AddDays(1).AddTicks(-1), offset),
+                ColorHex = customColor
+            }
+        ]);
+        var settingsStore = new MemorySettingsStore(new AppSettings
+        {
+            Theme = new ThemeSettings { DefaultEventColorHex = originalDefault }
+        });
+        var viewModel = new MainWindowViewModel(
+            repository,
+            settingsStore,
+            new RecurrenceService(),
+            new HolidayService(),
+            new EmptyBackupService(),
+            new EmptyWeatherService());
+        await viewModel.InitializeAsync();
+        var original = viewModel.Settings;
+        var applied = original with
+        {
+            Theme = original.Theme with { DefaultEventColorHex = changedDefault }
+        };
+
+        viewModel.PreviewSettings(applied);
+        Assert.AreEqual(changedDefault, GetTodayEvents(viewModel)["기본색 일정"].ColorHex);
+        Assert.AreEqual(customColor, GetTodayEvents(viewModel)["개별색 일정"].ColorHex);
+        Assert.AreEqual(originalDefault, repository.Items.Single(item => item.Title == "기본색 일정").ColorHex);
+
+        viewModel.RestoreSettingsPreview(original);
+        Assert.AreEqual(originalDefault, GetTodayEvents(viewModel)["기본색 일정"].ColorHex);
+
+        viewModel.PreviewSettings(applied);
+        await viewModel.ApplySettingsAsync(
+            applied,
+            applyEventFontSizeToAll: false,
+            previousDefaultEventColorHex: originalDefault);
+
+        Assert.AreEqual(changedDefault, repository.Items.Single(item => item.Title == "기본색 일정").ColorHex);
+        Assert.AreEqual(customColor, repository.Items.Single(item => item.Title == "개별색 일정").ColorHex);
+        Assert.AreEqual(changedDefault, GetTodayEvents(viewModel)["기본색 일정"].ColorHex);
+        Assert.AreEqual(changedDefault, settingsStore.SavedSettings.Theme.DefaultEventColorHex);
+    }
+
+    [TestMethod]
+    public void EventOccurrenceViewModel_HighlightUsesItsPaletteColorInsteadOfEventColor()
+    {
+        var start = new DateTimeOffset(2026, 8, 19, 0, 0, 0, TimeSpan.Zero);
+        var highlightColor = EventHighlightPalette.Colors.Single(color => color.Name == "빨강").Hex;
+        var calendarEvent = new CalendarEvent
+        {
+            Title = "독립 하이라이트",
+            Start = start,
+            End = start.AddHours(1),
+            ColorHex = "#FF4F8EF7",
+            IsHighlighted = true,
+            HighlightColorHex = highlightColor
+        };
+
+        var viewModel = new EventOccurrenceViewModel(
+            new EventOccurrence(calendarEvent, calendarEvent.Start, calendarEvent.End),
+            12);
+
+        Assert.AreEqual("#FF4F8EF7", viewModel.ColorHex);
+        Assert.AreEqual(highlightColor, viewModel.BackgroundHex);
+        Assert.AreEqual(EventHighlightPalette.DefaultColorHex, EventHighlightPalette.Normalize("#FF000000"));
+    }
+
+    [TestMethod]
     public async Task MainViewModel_UpgradesOldSettingsAndRepairsExistingEventFontSizesOnce()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
@@ -161,6 +248,56 @@ public sealed class ViewModelTests
     }
 
     [TestMethod]
+    public async Task MainViewModel_SortsHighlightedActiveEventsFirstAndCompletedEventsLast()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var start = today.ToDateTime(TimeOnly.MinValue);
+        var offset = TimeZoneInfo.Local.GetUtcOffset(start);
+        var repository = new MemoryEventRepository([
+            new CalendarEvent
+            {
+                Title = "완료한 하이라이트 일정",
+                Start = new DateTimeOffset(start, offset),
+                End = new DateTimeOffset(start.AddDays(1).AddTicks(-1), offset),
+                IsCompleted = true,
+                IsHighlighted = true,
+                CreatedUtc = DateTimeOffset.UtcNow.AddMinutes(-10)
+            },
+            new CalendarEvent
+            {
+                Title = "일반 진행 일정",
+                Start = new DateTimeOffset(start, offset),
+                End = new DateTimeOffset(start.AddDays(1).AddTicks(-1), offset),
+                CreatedUtc = DateTimeOffset.UtcNow
+            },
+            new CalendarEvent
+            {
+                Title = "하이라이트 진행 일정",
+                Start = new DateTimeOffset(start, offset),
+                End = new DateTimeOffset(start.AddDays(1).AddTicks(-1), offset),
+                IsHighlighted = true,
+                CreatedUtc = DateTimeOffset.UtcNow.AddMinutes(10)
+            }
+        ]);
+        var viewModel = new MainWindowViewModel(
+            repository,
+            new MemorySettingsStore(),
+            new RecurrenceService(),
+            new HolidayService(),
+            new EmptyBackupService(),
+            new EmptyWeatherService());
+
+        await viewModel.InitializeAsync();
+
+        var titles = viewModel.Days.Single(day => day.IsToday).AllEvents
+            .Select(item => item.Occurrence.Source.Title)
+            .ToArray();
+        CollectionAssert.AreEqual(
+            new[] { "하이라이트 진행 일정", "일반 진행 일정", "완료한 하이라이트 일정" },
+            titles);
+    }
+
+    [TestMethod]
     public void WeatherDayViewModel_ProvidesPopupHeaderAndHourlyDetails()
     {
         var localTime = new DateTime(2026, 8, 19, 14, 25, 0, DateTimeKind.Unspecified);
@@ -176,6 +313,8 @@ public sealed class ViewModelTests
             ]);
 
         StringAssert.Contains(viewModel.ToolTipText, "마지막 업데이트: 2026년 8월 19일 14:25");
+        Assert.AreEqual("↑28°", viewModel.MaximumText);
+        Assert.AreEqual("↓19°", viewModel.MinimumText);
         Assert.IsTrue(viewModel.HasHourly);
         Assert.HasCount(1, viewModel.Hourly);
         Assert.AreEqual("27.1°", viewModel.Hourly[0].TemperatureText);
@@ -185,6 +324,9 @@ public sealed class ViewModelTests
 
     private static EventOccurrenceViewModel GetTodayEvent(MainWindowViewModel viewModel) =>
         viewModel.Days.Single(day => day.IsToday).AllEvents.Single();
+
+    private static IReadOnlyDictionary<string, EventOccurrenceViewModel> GetTodayEvents(MainWindowViewModel viewModel) =>
+        viewModel.Days.Single(day => day.IsToday).AllEvents.ToDictionary(item => item.Occurrence.Source.Title);
 
     private sealed class EmptyEventRepository : IEventRepository
     {

@@ -14,6 +14,7 @@ public sealed record CalendarEvent
     public string ColorHex { get; init; } = "#FF4F8EF7";
     public bool IsCompleted { get; init; }
     public bool IsHighlighted { get; init; }
+    public string HighlightColorHex { get; init; } = EventHighlightPalette.DefaultColorHex;
     public bool IsBold { get; init; }
     public bool IsItalic { get; init; }
     public double TitleFontSize { get; init; }

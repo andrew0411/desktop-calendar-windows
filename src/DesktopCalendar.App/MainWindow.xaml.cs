@@ -305,8 +305,38 @@ public partial class MainWindow : Window
     {
         if (sender is FrameworkElement { DataContext: CalendarDayViewModel { SelectedEvent: { } item } })
         {
-            await _viewModel.SaveEventAsync(item.Occurrence.Source with { IsHighlighted = !item.Occurrence.Source.IsHighlighted });
+            var source = item.Occurrence.Source;
+            await _viewModel.SaveEventAsync(source.IsHighlighted
+                ? source with { IsHighlighted = false }
+                : source with
+                {
+                    IsHighlighted = true,
+                    HighlightColorHex = EventHighlightPalette.DefaultColorHex
+                });
         }
+    }
+
+    private void HighlightPaletteToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: CalendarDayViewModel day })
+            day.ToggleHighlightPalette();
+    }
+
+    private async void SelectedHighlightColor_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button
+            {
+                Tag: EventHighlightColor color,
+                CommandParameter: CalendarDayViewModel { SelectedEvent: { } item } day
+            })
+            return;
+
+        day.IsHighlightPaletteOpen = false;
+        await _viewModel.SaveEventAsync(item.Occurrence.Source with
+        {
+            IsHighlighted = true,
+            HighlightColorHex = EventHighlightPalette.Normalize(color.Hex)
+        });
     }
 
     private async void SelectedComplete_Click(object sender, RoutedEventArgs e)

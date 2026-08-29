@@ -11,11 +11,13 @@ public sealed class EventOccurrenceViewModel : ObservableObject
     private const string CompletedColorHex = "#FF63D6A0";
     private bool _isSelected;
     private double _fontSize;
+    private string _colorHex;
 
     public EventOccurrenceViewModel(EventOccurrence occurrence, double defaultFontSize)
     {
         Occurrence = occurrence;
         _fontSize = occurrence.Source.TitleFontSize > 0 ? occurrence.Source.TitleFontSize : defaultFontSize;
+        _colorHex = occurrence.Source.ColorHex;
     }
 
     public EventOccurrence Occurrence { get; }
@@ -23,8 +25,12 @@ public sealed class EventOccurrenceViewModel : ObservableObject
     public string Emoji => Occurrence.Source.Emoji;
     public bool HasEmoji => !string.IsNullOrWhiteSpace(Emoji);
     public bool IsCompleted => Occurrence.Source.IsCompleted;
-    public string ColorHex => IsCompleted ? CompletedColorHex : Occurrence.Source.ColorHex;
-    public string BackgroundHex => WithAlpha(ColorHex, IsCompleted ? "42" : Occurrence.Source.IsHighlighted ? "A6" : "2B");
+    public string ColorHex => IsCompleted ? CompletedColorHex : _colorHex;
+    public string BackgroundHex => IsCompleted
+        ? WithAlpha(ColorHex, "42")
+        : Occurrence.Source.IsHighlighted
+            ? EventHighlightPalette.Normalize(Occurrence.Source.HighlightColorHex)
+            : WithAlpha(ColorHex, "2B");
     public string ToolTipText
     {
         get
@@ -43,7 +49,9 @@ public sealed class EventOccurrenceViewModel : ObservableObject
         get => _fontSize;
         private set => SetProperty(ref _fontSize, value);
     }
-    public string HighlightButtonBackground => Occurrence.Source.IsHighlighted ? "#E6E7B84B" : "#26000000";
+    public string HighlightButtonBackground => Occurrence.Source.IsHighlighted
+        ? EventHighlightPalette.Normalize(Occurrence.Source.HighlightColorHex)
+        : "#26000000";
     public string CompleteButtonBackground => Occurrence.Source.IsCompleted ? "#E658B881" : "#26000000";
     public bool IsSelected
     {
@@ -52,6 +60,15 @@ public sealed class EventOccurrenceViewModel : ObservableObject
     }
 
     public void SetFontSize(double fontSize) => FontSize = fontSize;
+
+    public void SetColorHex(string colorHex)
+    {
+        if (string.Equals(_colorHex, colorHex, StringComparison.OrdinalIgnoreCase))
+            return;
+        _colorHex = colorHex;
+        OnPropertyChanged(nameof(ColorHex));
+        OnPropertyChanged(nameof(BackgroundHex));
+    }
 
     private static string WithAlpha(string color, string alpha)
     {
@@ -102,8 +119,8 @@ public sealed class WeatherDayViewModel
     public bool HasHourly => Hourly.Count > 0;
     public string Icon => WeatherPresentation.GetIcon(Forecast.WeatherCode);
     public string IconColorHex => WeatherPresentation.GetIconColor(Forecast.WeatherCode);
-    public string MaximumText => $"{Forecast.MaximumTemperature:0}°";
-    public string MinimumText => $"{Forecast.MinimumTemperature:0}°";
+    public string MaximumText => $"↑{Forecast.MaximumTemperature:0}°";
+    public string MinimumText => $"↓{Forecast.MinimumTemperature:0}°";
     public string TemperatureText => $"{Forecast.MaximumTemperature:0}°/{Forecast.MinimumTemperature:0}°";
     public string DisplayText => $"{Icon} {TemperatureText}";
     public string DateTitle => Forecast.Date.ToString("yyyy년 M월 d일 dddd", KoreanCulture);
@@ -142,6 +159,7 @@ public sealed class CalendarDayViewModel : ObservableObject
     private EventOccurrenceViewModel? _selectedEvent;
     private WeatherDayViewModel? _weather;
     private bool _isActionMenuOpen;
+    private bool _isHighlightPaletteOpen;
     private bool _isWeatherPopupOpen;
     private bool _isToday;
 
@@ -192,9 +210,17 @@ public sealed class CalendarDayViewModel : ObservableObject
         {
             if (!SetProperty(ref _isActionMenuOpen, value))
                 return;
+            if (!value)
+                IsHighlightPaletteOpen = false;
             OnPropertyChanged(nameof(ActionMenuGlyph));
         }
     }
+    public bool IsHighlightPaletteOpen
+    {
+        get => _isHighlightPaletteOpen;
+        set => SetProperty(ref _isHighlightPaletteOpen, value);
+    }
+    public IReadOnlyList<EventHighlightColor> HighlightColors => EventHighlightPalette.Colors;
     public string ActionMenuGlyph => IsActionMenuOpen ? "×" : "+";
     public string SelectedActionLabel => _selectedEvent is not null
         ? _selectedEvent.Occurrence.Title
@@ -222,12 +248,19 @@ public sealed class CalendarDayViewModel : ObservableObject
             _selectedEvent.IsSelected = false;
         _selectedEvent = item;
         item.IsSelected = true;
+        IsHighlightPaletteOpen = false;
         NotifySelectionChanged();
     }
 
     public void ToggleActionMenu()
     {
         IsActionMenuOpen = !IsActionMenuOpen;
+    }
+
+    public void ToggleHighlightPalette()
+    {
+        if (HasSelectedEvent)
+            IsHighlightPaletteOpen = !IsHighlightPaletteOpen;
     }
 
     public void ToggleWeatherPopup()

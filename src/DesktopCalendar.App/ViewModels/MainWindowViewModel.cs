@@ -17,6 +17,7 @@ public sealed class MainWindowViewModel(
     private DateOnly _displayMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateOnly _today = DateOnly.FromDateTime(DateTime.Today);
     private AppSettings _settings = new();
+    private AppSettings? _settingsPreviewBaseline;
     private bool _toolbarVisible;
     private WeatherSnapshot? _weatherSnapshot;
     private string _weatherStatus = string.Empty;
@@ -165,33 +166,61 @@ public sealed class MainWindowViewModel(
         await RefreshAsync();
     }
 
-    public async Task ApplySettingsAsync(AppSettings settings, bool applyEventFontSizeToAll = false)
+    public async Task ApplySettingsAsync(
+        AppSettings settings,
+        bool applyEventFontSizeToAll = false,
+        string? previousDefaultEventColorHex = null)
     {
-        if (applyEventFontSizeToAll)
+        var baselineDefaultColor = previousDefaultEventColorHex ?? _settingsPreviewBaseline?.Theme.DefaultEventColorHex;
+        var defaultEventColorChanged = baselineDefaultColor is not null &&
+            !ColorsEqual(baselineDefaultColor, settings.Theme.DefaultEventColorHex);
+        var eventsChanged = false;
+
+        if (applyEventFontSizeToAll || defaultEventColorChanged)
         {
             var updatedUtc = DateTimeOffset.UtcNow;
             var events = await repository.GetAllAsync();
-            await repository.ReplaceAllAsync(events.Select(item => item with
+            var updatedEvents = events.Select(item =>
             {
-                TitleFontSize = settings.Theme.Event.Size,
-                UpdatedUtc = updatedUtc
-            }));
+                var colorHex = defaultEventColorChanged && ColorsEqual(item.ColorHex, baselineDefaultColor!)
+                    ? settings.Theme.DefaultEventColorHex
+                    : item.ColorHex;
+                var titleFontSize = applyEventFontSizeToAll ? settings.Theme.Event.Size : item.TitleFontSize;
+                if (ColorsEqual(colorHex, item.ColorHex) && Math.Abs(titleFontSize - item.TitleFontSize) < 0.001)
+                    return item;
+
+                eventsChanged = true;
+                return item with
+                {
+                    ColorHex = colorHex,
+                    TitleFontSize = titleFontSize,
+                    UpdatedUtc = updatedUtc
+                };
+            }).ToArray();
+
+            if (eventsChanged)
+                await repository.ReplaceAllAsync(updatedEvents);
         }
 
+        _settingsPreviewBaseline = null;
         Settings = settings;
         ApplyWeatherToDays();
         await settingsStore.SaveAsync(settings);
 
-        if (applyEventFontSizeToAll)
+        if (eventsChanged)
             await RefreshAsync();
     }
 
     public void PreviewSettings(AppSettings settings)
     {
+        _settingsPreviewBaseline ??= Settings;
         var eventFontSizeChanged = Math.Abs(Settings.Theme.Event.Size - settings.Theme.Event.Size) > 0.001;
         Settings = settings;
         if (eventFontSizeChanged)
             ApplyEventFontSizeToDays(settings.Theme.Event.Size);
+        ApplyDefaultEventColorToDays(
+            _settingsPreviewBaseline.Theme.DefaultEventColorHex,
+            settings.Theme.DefaultEventColorHex);
         ApplyWeatherToDays();
     }
 
@@ -200,9 +229,13 @@ public sealed class MainWindowViewModel(
         Settings = settings;
         foreach (var day in Days)
         foreach (var item in day.AllEvents)
+        {
             item.SetFontSize(item.Occurrence.Source.TitleFontSize > 0
                 ? item.Occurrence.Source.TitleFontSize
                 : settings.Theme.Event.Size);
+            item.SetColorHex(item.Occurrence.Source.ColorHex);
+        }
+        _settingsPreviewBaseline = null;
         ApplyWeatherToDays();
     }
 
@@ -220,6 +253,7 @@ public sealed class MainWindowViewModel(
             IsWeatherRefreshing = true;
             if (!force && IsMatchingSnapshot(_weatherSnapshot, requested) &&
                 _weatherSnapshot!.Hourly.Count > 0 &&
+                HasRecentPastWeather(_weatherSnapshot) &&
                 IsFresh(_weatherSnapshot, requested.RefreshHours))
             {
                 ApplyWeatherToDays();
@@ -312,7 +346,9 @@ public sealed class MainWindowViewModel(
             .ToDictionary(group => group.Key, group => group.ToArray());
         var occurrences = sources
             .SelectMany(item => recurrenceService.Expand(item, rangeStart, rangeEnd))
-            .OrderBy(item => item.IsAllDay ? 0 : 1)
+            .OrderBy(item => item.Source.IsCompleted ? 1 : 0)
+            .ThenBy(item => item.Source.IsHighlighted ? 0 : 1)
+            .ThenBy(item => item.IsAllDay ? 0 : 1)
             .ThenBy(item => item.Start)
             .ThenBy(item => item.Source.CreatedUtc)
             .ThenBy(item => item.Title, StringComparer.CurrentCultureIgnoreCase)
@@ -359,6 +395,18 @@ public sealed class MainWindowViewModel(
             item.SetFontSize(fontSize);
     }
 
+    private void ApplyDefaultEventColorToDays(string previousDefaultColorHex, string defaultColorHex)
+    {
+        foreach (var day in Days)
+        foreach (var item in day.AllEvents)
+            item.SetColorHex(ColorsEqual(item.Occurrence.Source.ColorHex, previousDefaultColorHex)
+                ? defaultColorHex
+                : item.Occurrence.Source.ColorHex);
+    }
+
+    private static bool ColorsEqual(string left, string right) =>
+        string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
     private static bool IsMatchingSnapshot(WeatherSnapshot? snapshot, WeatherSettings settings) =>
         snapshot is not null && settings.HasResolvedLocation &&
         snapshot.TemperatureUnit == settings.TemperatureUnit &&
@@ -367,6 +415,12 @@ public sealed class MainWindowViewModel(
 
     private static bool IsFresh(WeatherSnapshot snapshot, int refreshHours) =>
         DateTimeOffset.UtcNow - snapshot.UpdatedUtc < TimeSpan.FromHours(Math.Clamp(refreshHours, 1, 24));
+
+    private static bool HasRecentPastWeather(WeatherSnapshot snapshot)
+    {
+        var yesterday = DateOnly.FromDateTime(DateTime.Today).AddDays(-1);
+        return snapshot.Daily.Any(item => item.Date == yesterday);
+    }
 
     private async Task CreateDailyBackupAsync()
     {

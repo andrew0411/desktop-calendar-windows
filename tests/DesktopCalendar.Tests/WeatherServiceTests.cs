@@ -42,6 +42,7 @@ public sealed class WeatherServiceTests
             else
             {
                 StringAssert.Contains(request.RequestUri.Query, "hourly=weather_code,temperature_2m,apparent_temperature,precipitation_probability,precipitation");
+                StringAssert.Contains(request.RequestUri.Query, "past_days=7");
                 json = """
                   {
                     "daily":{"time":["2026-08-18","2026-08-19"],"weather_code":[3,61],"temperature_2m_max":[28.4,25.1],"temperature_2m_min":[19.2,18.6]},

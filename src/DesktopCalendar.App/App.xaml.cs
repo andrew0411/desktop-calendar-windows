@@ -138,7 +138,10 @@ public partial class App : System.Windows.Application
                 var eventFontSizeChanged = Math.Abs(original.Theme.Event.Size - applied.Theme.Event.Size) > 0.001;
                 if (!eventFontSizeChanged)
                     _viewModel.RestoreSettingsPreview(applied);
-                await _viewModel.ApplySettingsAsync(applied, eventFontSizeChanged);
+                await _viewModel.ApplySettingsAsync(
+                    applied,
+                    eventFontSizeChanged,
+                    original.Theme.DefaultEventColorHex);
                 await _viewModel.RefreshWeatherIfNeededAsync();
             }
             else if (_settingsWindow.Imported)
