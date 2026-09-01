@@ -20,8 +20,6 @@ public sealed class MainWindowViewModel(
     private AppSettings? _settingsPreviewBaseline;
     private bool _toolbarVisible;
     private WeatherSnapshot? _weatherSnapshot;
-    private string _weatherStatus = string.Empty;
-    private bool _isWeatherRefreshing;
 
     public ObservableCollection<CalendarDayViewModel> Days { get; } = [];
     public string MonthTitle => $"{_displayMonth:yyyy년 M월}";
@@ -40,16 +38,6 @@ public sealed class MainWindowViewModel(
     public ThemeSettings Theme => Settings.Theme;
     public WeatherSettings WeatherSettings => Settings.Weather;
     public bool IsLayoutLocked => Settings.Window.IsLayoutLocked;
-    public string WeatherStatus
-    {
-        get => _weatherStatus;
-        private set => SetProperty(ref _weatherStatus, value);
-    }
-    public bool IsWeatherRefreshing
-    {
-        get => _isWeatherRefreshing;
-        private set => SetProperty(ref _isWeatherRefreshing, value);
-    }
     public bool ToolbarVisible
     {
         get => _toolbarVisible;
@@ -134,24 +122,6 @@ public sealed class MainWindowViewModel(
         }
 
         return true;
-    }
-
-    public async Task<CalendarEvent> CreateQuickEventAsync(DateOnly date, string title)
-    {
-        var local = date.ToDateTime(TimeOnly.MinValue);
-        var offset = TimeZoneInfo.Local.GetUtcOffset(local);
-        var item = new CalendarEvent
-        {
-            Title = title.Trim(),
-            Start = new DateTimeOffset(local, offset),
-            End = new DateTimeOffset(local.AddDays(1).AddTicks(-1), offset),
-            IsAllDay = true,
-            TimeZoneId = TimeZoneInfo.Local.Id,
-            ColorHex = Theme.DefaultEventColorHex
-        };
-        await repository.UpsertAsync(item);
-        await RefreshAsync();
-        return item;
     }
 
     public async Task SaveEventAsync(CalendarEvent item)
@@ -250,7 +220,6 @@ public sealed class MainWindowViewModel(
         await _weatherRefreshLock.WaitAsync();
         try
         {
-            IsWeatherRefreshing = true;
             if (!force && IsMatchingSnapshot(_weatherSnapshot, requested) &&
                 _weatherSnapshot!.Hourly.Count > 0 &&
                 HasRecentPastWeather(_weatherSnapshot) &&
@@ -270,7 +239,6 @@ public sealed class MainWindowViewModel(
             var snapshot = await weatherService.GetForecastAsync(location, requested.TemperatureUnit);
             await weatherService.SaveCacheAsync(snapshot);
             _weatherSnapshot = snapshot;
-            WeatherStatus = $"{snapshot.LocationName} · {snapshot.UpdatedUtc.ToLocalTime():M월 d일 HH:mm} 업데이트";
 
             if (weather is null)
             {
@@ -282,7 +250,6 @@ public sealed class MainWindowViewModel(
         }
         finally
         {
-            IsWeatherRefreshing = false;
             _weatherRefreshLock.Release();
         }
     }
@@ -299,11 +266,8 @@ public sealed class MainWindowViewModel(
             await RefreshWeatherAsync(force: force);
             return true;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            WeatherStatus = _weatherSnapshot is null
-                ? $"날씨를 불러오지 못했습니다: {ex.Message}"
-                : $"마지막 날씨를 표시합니다 · 업데이트 실패: {ex.Message}";
             ApplyWeatherToDays();
             return false;
         }

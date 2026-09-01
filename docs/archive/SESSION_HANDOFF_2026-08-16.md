@@ -1,20 +1,24 @@
-# Desktop Calendar 작업 인수인계 — 2026-08-16
+# Desktop Calendar 작업 인수인계 — 보관본
 
-이 문서는 이후 피드백·버그 수정·UI/UX 개선 작업을 같은 프로젝트에서 바로 이어가기 위한 기준 문서다.
+> 2026-08-16에 작성하고 2026-09-01까지 누적 갱신한 세션 기록이다. 현재 프로젝트 기준은 `docs/README.md`에서 연결하는 문서를 사용한다. 이 파일은 당시의 구현 맥락을 보존하기 위한 자료이며 더 이상 운영 기준으로 갱신하지 않는다.
 
 ## 1. 현재 상태
 
 - 대상: Windows 11 x64 개인용 바탕화면 캘린더
 - 기술: C# / .NET 10 / WPF / MVVM / SQLite
 - 실행 파일: `artifacts/win-x64/DesktopCalendar.exe`
-- 최종 검증: Release 빌드 경고 0·오류 0, 자동 테스트 16개 전부 통과
-- 최종 데이터 확인: SQLite 스키마 버전 2, 기존 일정 2개 보존
-- 세션 종료 시 앱은 최신 실행본으로 실행 중
+- 최신 배포: `artifacts/packages/DesktopCalendar-v0.2.1-win-x64-portable.zip`, `DesktopCalendar-v0.2.1-win-x64-slim.zip`
+- 최종 검증: Release 빌드 경고 0·오류 0, 자동 테스트 36개 전부 통과
+- 데이터 버전: SQLite 스키마 버전 4, 앱 설정 스키마 버전 2
+- v0.2.1 배포 소스는 `main`의 `acceb7d`를 기반으로 이후 정리 변경까지 반영한 작업 트리 기준
+- 릴리스 버전의 단일 기준은 App 프로젝트의 `VersionPrefix`이며 v0.2.1의 파일·어셈블리 버전은 `0.2.1.0`이다. 자세한 규칙은 `docs/VERSIONING.md`를 따른다.
+- 2026-09-01에는 기본 portable 실행본이 실행 중이어서 덮어쓰지 않았고, 별도 검증 경로에서 v0.2.1 portable/slim 실행 파일과 ZIP 생성을 확인했다. 기본 `artifacts` 배포본은 앱 종료 후 `./build-release.ps1`로 다시 생성한다.
+- 세션 종료 시 앱은 2026-08-29에 만든 기존 portable 실행본으로 실행 중
 - 사용자 데이터와 DesktopCal 원본 데이터는 이 앱이 읽거나 변경하지 않음
 
 원래 계획은 WinUI 3였지만 현재 PC에 필요한 워크로드가 없어 계획에 정의된 WPF 폴백을 사용했다. `Core`와 `Infrastructure`는 UI와 분리되어 있다.
 
-## 2. 이번 세션에서 완성한 기능
+## 2. 누적 구현 기능
 
 ### 바탕화면 동작과 안정성
 
@@ -32,7 +36,7 @@
 - 파란 가장자리와 네 모서리를 드래그해 창 크기를 변경한다.
 - WPF 기본 `ResizeMode`나 `DragMove`에 의존하지 않고 Win32 시스템 이동·크기 조정을 직접 시작한다. 관련 구현은 `DesktopHost.BeginSystemDrag`와 `DesktopHost.SetLayoutEditing`이다.
 - 드래그가 끝나면 모니터 기준 위치·크기를 비율로 저장한다.
-- 창 높이에 맞춰 날짜 칸에서 보이는 일정 개수를 자동 재계산한다.
+- 날짜 칸의 일정 영역은 얇은 라운드 스크롤바를 사용하며, 숨겨진 일정도 스크롤 후 선택할 수 있다.
 
 ### 월간 캘린더와 일정 입력
 
@@ -42,7 +46,7 @@
 - 일정 더블클릭은 `일정 편집` 창을 연다.
 - 일정 추가·편집 창에서 `Esc`는 저장 없이 취소한다.
 - 기존 일정은 위에 유지되고 새 일정은 생성 시각 순서에 따라 아래에 추가된다.
-- 공간을 넘는 일정은 `+N개`로 표시하고 날짜별 전체 목록 창을 연다.
+- 공간을 넘는 일정은 날짜 칸 안에서 스크롤한다. 과거의 별도 날짜 전체 목록 창은 v0.2.0부터 사용하지 않으며 소스에서도 제거했다.
 
 ### 일정 데이터와 표현
 
@@ -61,6 +65,8 @@
 - 일정별 오른쪽 버튼은 제거했다.
 - 일정이 있는 날짜 칸 오른쪽 아래에만 `+` 버튼을 표시한다.
 - `+`를 누르면 선택 일정 이름과 `하이라이트`, `완료선` 버튼이 작은 팝업으로 나타난다.
+- 하이라이트는 일정 기본색과 분리된 5색 팔레트를 사용한다.
+- 진행 중 하이라이트 일정, 일반 진행 일정, 완료 일정 순으로 정렬한다.
 - 일정을 선택하지 않은 상태에서는 안내 문구가 나오고 액션 버튼은 비활성화된다.
 
 ### 공휴일
@@ -76,7 +82,7 @@
 - 배경 투명도와 구분선 두께는 캘린더를 뒤에 유지한 상태에서 실시간 미리보기가 적용된다.
 - 슬라이더는 클릭 위치 이동과 세밀한 조정이 가능하다.
 - 백업 동작 설명을 설정 화면에 포함했다.
-- 설정·일정 추가·일정 편집·날짜 전체 일정 창에 공통 다크/라이트 모드를 적용했다.
+- 설정·일정 추가·일정 편집 창에 공통 다크/라이트 모드를 적용했다.
 - 선택 모드는 `AppSettings.AppearanceMode`에 `Dark` 또는 `Light`로 저장된다.
 - 색상 리소스는 `UiThemeService`가 동적으로 교체하며 DWM 제목 표시줄도 모드에 맞춘다.
 - 다크/라이트 모드는 편집용 창 UI에 적용된다. 캘린더 본체는 사용자가 설정한 배경·글꼴·색상 테마를 유지한다.
@@ -84,8 +90,11 @@
 ### 저장·마이그레이션·백업
 
 - SQLite는 WAL 모드를 사용한다.
-- DB 스키마는 버전 2다.
-- 버전 1에서 2로 이동할 때 장소·상태·서식 필드를 안전하게 추가한다.
+- DB 스키마는 버전 4다.
+- 버전 1에서 2로 이동할 때 장소·상태·서식 필드를 추가한다.
+- 버전 2에서 3으로 이동할 때 일정 이모지 필드를 추가한다.
+- 버전 3에서 4로 이동할 때 일정 기본색과 분리된 하이라이트 색상 필드를 추가한다.
+- DB 마이그레이션 전에는 현재 DB를 `Backups/calendar-pre-migration-*.db`로 복사한다.
 - 실제 사용자 DB 마이그레이션 전 백업:
   `%LOCALAPPDATA%\DesktopCalendar\Backups\calendar-pre-migration-20260816-004204.db`
 - 마이그레이션 전후 기존 일정 수 2개를 확인했다.
@@ -100,9 +109,13 @@
 - `src/DesktopCalendar.App/Controls/PaletteColorPicker.xaml(.cs)`: 24색 공통 팔레트
 - `src/DesktopCalendar.App/Services/DesktopHost.cs`: 저층 Z 순서, 바탕화면 재결합, 시스템 이동·크기 조정
 - `src/DesktopCalendar.App/Services/UiThemeService.cs`: 다크/라이트 리소스 및 제목 표시줄
-- `src/DesktopCalendar.App/ViewModels/CalendarDayViewModel.cs`: 일정 선택 상태와 하단 메뉴 상태
-- `src/DesktopCalendar.Infrastructure/SqliteEventRepository.cs`: 스키마 2와 마이그레이션
-- `tests/DesktopCalendar.Tests`: 달력·공휴일·반복·저장·마이그레이션·백업 테스트
+- `src/DesktopCalendar.App/ViewModels/CalendarDayViewModel.cs`: 일정 선택, 하단 메뉴, 날씨 상세 표시 상태
+- `src/DesktopCalendar.App/ViewModels/EventEmojiOption.cs`: 일정 이모지 카테고리와 선택 목록
+- `src/DesktopCalendar.Core/Models/EventHighlightPalette.cs`: 일정 기본색과 독립된 하이라이트 팔레트
+- `src/DesktopCalendar.Core/Models/WeatherModels.cs`: 일별·시간대별 날씨 모델과 표시 규칙
+- `src/DesktopCalendar.Infrastructure/OpenMeteoWeatherService.cs`: 위치 검색, 16일/과거 7일 예보, 캐시
+- `src/DesktopCalendar.Infrastructure/SqliteEventRepository.cs`: DB 스키마 4와 단계별 마이그레이션
+- `tests/DesktopCalendar.Tests`: 달력·공휴일·반복·저장·마이그레이션·백업·날씨·뷰모델 테스트
 
 ## 4. 데이터 위치와 안전 수칙
 
@@ -132,7 +145,7 @@ dotnet publish src/DesktopCalendar.App/DesktopCalendar.App.csproj `
 .\build-release.ps1
 ```
 
-배포본을 교체할 때는 실행 중인 `DesktopCalendar` 프로세스를 종료한 뒤 publish하고, 개인용 실행은 `artifacts\win-x64\DesktopCalendar.exe`를 사용한다.
+배포본을 교체할 때는 실행 중인 `DesktopCalendar` 프로세스를 종료한 뒤 `./build-release.ps1`을 실행하고, 개인용 실행은 `artifacts\win-x64\DesktopCalendar.exe`를 사용한다. 스크립트는 portable/slim 폴더와 두 ZIP을 생성하고 실행 파일 버전을 검증한다. `artifacts/packages`에는 최신 portable/slim ZIP만 유지하고 과거 릴리스 ZIP은 GitHub 릴리스를 기준 기록으로 사용한다.
 
 검증 체크리스트:
 
@@ -144,7 +157,7 @@ dotnet publish src/DesktopCalendar.App/DesktopCalendar.App.csproj `
 6. 다크/라이트 모드 전환 후 설정·추가·편집 창 확인
 7. 위치 이동과 네 방향·네 모서리 크기 조정 후 재시작 복원 확인
 8. `sqlite3`로 `PRAGMA user_version`과 일정 수 확인
-9. 전체 테스트 통과 후 실행본 교체
+9. 자동 테스트 36개와 전체 빌드가 통과한 뒤 실행본 교체
 
 ## 6. 이후 개선 후보
 
@@ -158,5 +171,34 @@ dotnet publish src/DesktopCalendar.App/DesktopCalendar.App.csproj `
 
 ## 7. 개발 환경 참고
 
-- 저장소 상위 디렉터리의 Git 상태에서는 이 프로젝트 전체가 아직 추적되지 않은 폴더로 표시될 수 있다. 후속 작업에서 `git reset`, `git clean` 등 파괴적인 명령을 사용하지 않는다.
+- 저장소의 사용자 변경을 보존하고 `git reset`, `git clean` 등 파괴적인 명령을 사용하지 않는다.
 - 자동 포인터 검사 중 NVIDIA GeForce Overlay가 화면 입력을 가로막을 수 있었다. 앱의 이동·크기 조정은 오버레이를 잠시 숨긴 상태에서 실제 좌표·크기 변경으로 검증했다. 일반 사용자 피드백이 없다면 이를 앱 자체 입력 버그로 단정하지 않는다.
+
+## 8. 누적 작업 기록
+
+### 2026-08-18 — 최초 구현
+
+- WPF 바탕화면 호스트, 월간 달력, 일정 편집, SQLite 저장, 설정, 백업, 트레이와 자동 실행을 구현했다.
+- DB 스키마 1을 기준으로 시작한 뒤 장소·상태·서식 필드를 포함하는 스키마 2로 확장했다.
+
+### 2026-08-19 — v0.2.0
+
+- 절전 복귀와 자정 경과 후 오늘 표시를 갱신하고 현재 월 자동 전환을 추가했다.
+- 시간 입력 정규화, 날짜 칸 일정 스크롤, 전역 일정 글꼴 크기 반영, 공휴일/일정 공통 레이아웃을 적용했다.
+- 별도 `DayEventsWindow` 호출을 제거하고 날짜 칸 내부 스크롤로 통합했다.
+- 자세한 사용자 대상 변경 사항은 `docs/releases/v0.2.0.md`에 보존한다.
+
+### 2026-08-29 — v0.2.1 소규모 기능 업데이트
+
+- 일정 이모지와 독립 하이라이트 색상 팔레트를 추가하고 DB 스키마를 4까지 확장했다.
+- 진행 중 하이라이트 일정 우선, 완료 일정 후순위 정렬을 적용했다.
+- 시간대별 날씨와 과거 7일 날씨 데이터를 포함해 월 경계의 상세 날씨 표시를 보강했다.
+- 자동 테스트를 36개로 확장했다.
+- 과거 배포 ZIP과 과거 커밋의 풀린 배포 폴더를 제거하고 최신 portable/slim ZIP만 유지했다.
+- 최초 구현 이후 사용처가 없거나 v0.2.0부터 호출되지 않은 `DayEventsWindow`, 빠른 일정 생성 메서드, 데스크톱 호스트의 미사용 인터페이스·이벤트·재배치 메서드, 미사용 날씨 상태 속성을 제거했다.
+
+### 2026-09-01 — 릴리스 관리 정리
+
+- App 프로젝트의 `VersionPrefix`를 제품·파일·어셈블리·패키지 버전의 단일 기준으로 정했다.
+- `build-release.ps1`에 portable/slim 게시, 버전 검사, 고지 파일 복사, ZIP 생성과 필수 내용 검사를 통합했다.
+- 버전 정책과 개발·자동화 판단을 `docs/VERSIONING.md`, `docs/DEVELOPMENT.md`로 분리했다.

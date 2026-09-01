@@ -2,6 +2,8 @@
 
 Windows 11 바탕화면에 고정되는 개인용 월간 캘린더 프로토타입입니다. 네트워크 연결이나 계정 없이 일정과 설정을 로컬에 저장합니다.
 
+현재 개발 기준은 Windows 11 x64, C#과 .NET 10 WPF입니다. 개발·빌드에는 .NET 10 SDK가 필요하며 slim 배포본 실행에는 .NET 10 Desktop Runtime x64가 필요합니다.
+
 ## 구현된 기능
 
 - 일반 앱 아래·`Progman` 바로 위의 바탕화면 전용 Z 계층 유지, 최상위 창 방지 및 Explorer 상태 감시
@@ -33,7 +35,7 @@ Windows 11 바탕화면에 고정되는 개인용 월간 캘린더 프로토타�
 - `src/DesktopCalendar.App`: WPF UI, MVVM, 바탕화면·트레이·자동 실행 통합
 - `tests/DesktopCalendar.Tests`: 핵심 및 저장소 테스트
 
-원래 계획한 WinUI 3 개발 워크로드가 현재 PC에 없어, 계획에 정의된 폴백인 WPF 호스트를 사용합니다. Core와 Infrastructure는 UI 프레임워크와 분리되어 있어 이후 WinUI 호스트를 추가할 수 있습니다.
+원래 계획한 WinUI 3 개발 워크로드가 현재 PC에 없어, 계획에 정의된 폴백인 .NET 10 WPF 호스트를 사용합니다. Core와 Infrastructure는 UI 프레임워크와 분리되어 있어 이후 다른 UI 호스트를 추가할 수 있습니다.
 
 ## 개발 실행
 
@@ -90,10 +92,13 @@ dotnet run --project src/DesktopCalendar.App/DesktopCalendar.App.csproj -c Debug
 - Open-Meteo 무료 API는 비상업적 사용 조건이 적용됩니다. 상업적 배포 시 해당 서비스의 최신 이용 조건과 요금제를 확인하세요.
 - 오픈소스 패키지의 상세 고지는 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)를 참조하세요.
 
-## 작업 인수인계
+## 프로젝트 문서
 
-현재 구현 상태, 주요 설계 결정, 데이터 마이그레이션과 다음 작업 시 주의사항은
-[`docs/SESSION_HANDOFF_2026-08-16.md`](docs/SESSION_HANDOFF_2026-08-16.md)에 정리되어 있습니다.
+- 전체 문서 안내: [`docs/README.md`](docs/README.md)
+- 아키텍처와 데이터 경계: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- 개발·검증·저장소 운영: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- 버전·릴리스 정책: [`docs/VERSIONING.md`](docs/VERSIONING.md)
+- 최신 릴리스 노트: [`docs/releases/v0.2.1.md`](docs/releases/v0.2.1.md)
 
 ## 릴리스 빌드
 
@@ -101,4 +106,11 @@ dotnet run --project src/DesktopCalendar.App/DesktopCalendar.App.csproj -c Debug
 .\build-release.ps1
 ```
 
-결과는 기본적으로 `artifacts\win-x64`에 생성됩니다. 현재 PC에는 MSIX 제작·서명 도구가 없으므로 이 스크립트는 self-contained x64 배포 폴더를 만듭니다. MSIX 패키징은 Windows SDK의 MakeAppx/SignTool 또는 Visual Studio Packaging workload가 준비된 환경에서 추가할 수 있습니다.
+실행 중인 Desktop Calendar를 먼저 종료해야 합니다. 스크립트는 Release 테스트를 통과한 뒤 프로젝트의 `VersionPrefix`를 기준으로 다음 결과를 한 번에 생성하고 실행 파일과 ZIP의 필수 내용을 검증합니다.
+
+- `artifacts\win-x64`: .NET 런타임 포함 portable 실행 폴더
+- `artifacts\win-x64-slim`: .NET 10 Desktop Runtime이 필요한 slim 실행 폴더
+- `artifacts\packages\DesktopCalendar-v{버전}-win-x64-portable.zip`
+- `artifacts\packages\DesktopCalendar-v{버전}-win-x64-slim.zip`
+
+현재 PC에는 MSIX 제작·서명 도구가 없으므로 MSIX는 만들지 않습니다. MSIX 패키징은 Windows SDK의 MakeAppx/SignTool 또는 Visual Studio Packaging workload가 준비된 환경에서 별도로 추가할 수 있습니다.

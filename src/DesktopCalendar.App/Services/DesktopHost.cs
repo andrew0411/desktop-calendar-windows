@@ -1,9 +1,8 @@
 using System.Runtime.InteropServices;
-using DesktopCalendar.Core.Abstractions;
 
 namespace DesktopCalendar.App.Services;
 
-public sealed class DesktopHost : IDesktopHost
+public sealed class DesktopHost : IDisposable
 {
     private nint _windowHandle;
     private nint _progman;
@@ -11,7 +10,6 @@ public sealed class DesktopHost : IDesktopHost
     private bool _layoutEditing;
 
     public bool IsAttached { get; private set; }
-    public event EventHandler<bool>? AttachmentChanged;
 
     public bool Attach(nint windowHandle, int x, int y, int width, int height)
     {
@@ -71,18 +69,6 @@ public sealed class DesktopHost : IDesktopHost
             NativeMethods.ShowWindow(windowHandle, NativeMethods.SwShowNoActivate);
         SetAttached(positioned);
         return positioned;
-    }
-
-    public void Reposition(int x, int y, int width, int height)
-    {
-        if (_windowHandle == nint.Zero || !IsAttached || !NativeMethods.IsWindow(_windowHandle))
-            return;
-        var anchor = _desktopAnchor != nint.Zero && NativeMethods.IsWindow(_desktopAnchor) ? _desktopAnchor : nint.Zero;
-        NativeMethods.SetWindowPos(
-            _windowHandle,
-            anchor,
-            x, y, Math.Max(320, width), Math.Max(240, height),
-            NativeMethods.SwpNoActivate | NativeMethods.SwpShowWindow | (anchor == nint.Zero ? NativeMethods.SwpNoZOrder : 0u));
     }
 
     public void SetLayoutEditing(bool enabled)
@@ -179,13 +165,7 @@ public sealed class DesktopHost : IDesktopHost
 
     public void Dispose() => Detach();
 
-    private void SetAttached(bool value)
-    {
-        if (IsAttached == value)
-            return;
-        IsAttached = value;
-        AttachmentChanged?.Invoke(this, value);
-    }
+    private void SetAttached(bool value) => IsAttached = value;
 
     private static class NativeMethods
     {

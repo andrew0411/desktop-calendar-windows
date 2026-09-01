@@ -48,13 +48,3 @@ public interface IBackupService
     Task ExportAsync(string path, BackupBundle bundle, CancellationToken cancellationToken = default);
     Task<BackupBundle> ImportAsync(string path, CancellationToken cancellationToken = default);
 }
-
-public interface IDesktopHost : IDisposable
-{
-    bool IsAttached { get; }
-    event EventHandler<bool>? AttachmentChanged;
-    bool Attach(nint windowHandle, int x, int y, int width, int height);
-    bool TryGetWindowBounds(out int x, out int y, out int width, out int height);
-    void Detach();
-    bool IsDesktopAvailable();
-}
